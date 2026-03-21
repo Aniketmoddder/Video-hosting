@@ -40,7 +40,7 @@ const jobs = {};
 
 // 🧪 Health
 app.get("/", (req, res) => {
-  res.send("🔥 Async Video Server Running");
+  res.send("🔥 720p Video Server Running");
 });
 
 // 🔍 Status API
@@ -50,7 +50,7 @@ app.get("/status/:id", (req, res) => {
   res.json(job);
 });
 
-// 🔥 PROCESS FUNCTION (FULL FIX)
+// 🎬 CORE PROCESS (720p ONLY + FAST)
 async function processVideo(input, videoId, isM3U8 = false) {
   const outputDir = `/tmp/${videoId}`;
   fs.mkdirSync(outputDir, { recursive: true });
@@ -69,8 +69,16 @@ async function processVideo(input, videoId, isM3U8 = false) {
 
     command
       .outputOptions([
-        "-map 0",
-        "-c copy",
+        "-vf scale=-2:720",        // 🔥 FORCE 720p
+        "-c:v libx264",
+        "-preset veryfast",       // 🔥 FAST processing
+        "-crf 28",                // 🔥 compression (lower = better quality)
+        "-maxrate 1200k",
+        "-bufsize 2000k",
+
+        "-c:a aac",
+        "-b:a 128k",
+
         "-f hls",
         "-hls_time 6",
         "-hls_list_size 0",
@@ -146,6 +154,7 @@ app.post("/upload-url", async (req, res) => {
   }
 
   const videoId = uuidv4();
+  const isM3U8 = videoUrl.includes(".m3u8");
 
   jobs[videoId] = { status: "processing" };
 
@@ -157,8 +166,6 @@ app.post("/upload-url", async (req, res) => {
 
   (async () => {
     try {
-      const isM3U8 = videoUrl.includes(".m3u8");
-
       let playbackUrl;
 
       if (isM3U8) {
@@ -167,7 +174,7 @@ app.post("/upload-url", async (req, res) => {
         try {
           playbackUrl = await processVideo(videoUrl, videoId, true);
         } catch (err) {
-          console.log("⚠️ fallback external");
+          // fallback for protected streams
           jobs[videoId] = {
             status: "completed",
             playbackUrl: videoUrl,
@@ -177,7 +184,7 @@ app.post("/upload-url", async (req, res) => {
         }
 
       } else {
-        console.log("📥 Downloading file");
+        console.log("📥 Downloading");
 
         const inputPath = `/tmp/${videoId}.mp4`;
 
