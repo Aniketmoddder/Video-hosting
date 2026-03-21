@@ -21,7 +21,7 @@ const {
   PUBLIC_URL
 } = process.env;
 
-// ☁️ R2
+// ☁️ R2 CONFIG
 const s3 = new AWS.S3({
   endpoint: R2_ENDPOINT,
   accessKeyId: R2_ACCESS_KEY,
@@ -29,10 +29,13 @@ const s3 = new AWS.S3({
   signatureVersion: "v4"
 });
 
-// 📁 Upload
-const upload = multer({ dest: "/tmp" });
+// 📁 Upload config
+const upload = multer({
+  dest: "/tmp",
+  limits: { fileSize: 1000 * 1024 * 1024 } // 1GB
+});
 
-// 🧠 In-memory job store
+// 🧠 Job storage
 const jobs = {};
 
 // 🧪 Health
@@ -47,7 +50,7 @@ app.get("/status/:id", (req, res) => {
   res.json(job);
 });
 
-// 🔧 PROCESS FUNCTION
+// 🔥 PROCESS FUNCTION (FULL FIX)
 async function processVideo(input, videoId, isM3U8 = false) {
   const outputDir = `/tmp/${videoId}`;
   fs.mkdirSync(outputDir, { recursive: true });
@@ -55,19 +58,27 @@ async function processVideo(input, videoId, isM3U8 = false) {
   await new Promise((resolve, reject) => {
     let command = ffmpeg(input);
 
-    command
-      .inputOptions([
+    if (isM3U8) {
+      command = command.inputOptions([
         "-protocol_whitelist file,http,https,tcp,tls,crypto",
-        "-headers User-Agent: Mozilla/5.0"
-      ])
+        "-allowed_extensions ALL",
+        "-headers",
+        "User-Agent: Mozilla/5.0\r\nReferer: https://google.com\r\nOrigin: https://google.com"
+      ]);
+    }
+
+    command
       .outputOptions([
+        "-map 0",
         "-c copy",
-        "-bsf:a aac_adtstoasc",
+        "-f hls",
         "-hls_time 6",
         "-hls_list_size 0",
-        "-f hls"
+        "-hls_segment_filename",
+        `${outputDir}/seg_%03d.ts`
       ])
       .output(`${outputDir}/master.m3u8`)
+      .on("start", cmd => console.log("FFmpeg:", cmd))
       .on("end", resolve)
       .on("error", reject)
       .run();
@@ -94,7 +105,7 @@ async function processVideo(input, videoId, isM3U8 = false) {
   return `${PUBLIC_URL}/${videoId}/master.m3u8`;
 }
 
-// 🎬 FILE UPLOAD (ASYNC)
+// 🎬 FILE UPLOAD
 app.post("/upload", upload.single("video"), async (req, res) => {
   if (!req.file) {
     return res.status(400).json({ error: "No file uploaded" });
@@ -102,9 +113,7 @@ app.post("/upload", upload.single("video"), async (req, res) => {
 
   const videoId = uuidv4();
 
-  jobs[videoId] = {
-    status: "processing"
-  };
+  jobs[videoId] = { status: "processing" };
 
   res.json({
     success: true,
@@ -112,7 +121,6 @@ app.post("/upload", upload.single("video"), async (req, res) => {
     status: "processing"
   });
 
-  // background
   (async () => {
     try {
       const url = await processVideo(req.file.path, videoId);
@@ -123,14 +131,13 @@ app.post("/upload", upload.single("video"), async (req, res) => {
         playbackUrl: url
       };
     } catch (err) {
-      jobs[videoId] = {
-        status: "failed"
-      };
+      console.error(err);
+      jobs[videoId] = { status: "failed" };
     }
   })();
 });
 
-// 🌐 URL UPLOAD (ASYNC)
+// 🌐 URL UPLOAD
 app.post("/upload-url", async (req, res) => {
   const { videoUrl } = req.body;
 
@@ -140,9 +147,7 @@ app.post("/upload-url", async (req, res) => {
 
   const videoId = uuidv4();
 
-  jobs[videoId] = {
-    status: "processing"
-  };
+  jobs[videoId] = { status: "processing" };
 
   res.json({
     success: true,
@@ -150,7 +155,6 @@ app.post("/upload-url", async (req, res) => {
     status: "processing"
   });
 
-  // background
   (async () => {
     try {
       const isM3U8 = videoUrl.includes(".m3u8");
@@ -163,7 +167,7 @@ app.post("/upload-url", async (req, res) => {
         try {
           playbackUrl = await processVideo(videoUrl, videoId, true);
         } catch (err) {
-          // fallback
+          console.log("⚠️ fallback external");
           jobs[videoId] = {
             status: "completed",
             playbackUrl: videoUrl,
@@ -173,14 +177,17 @@ app.post("/upload-url", async (req, res) => {
         }
 
       } else {
-        console.log("📥 Downloading");
+        console.log("📥 Downloading file");
 
         const inputPath = `/tmp/${videoId}.mp4`;
 
         const response = await axios({
           url: videoUrl,
           method: "GET",
-          responseType: "stream"
+          responseType: "stream",
+          headers: {
+            "User-Agent": "Mozilla/5.0"
+          }
         });
 
         const writer = fs.createWriteStream(inputPath);
@@ -202,9 +209,8 @@ app.post("/upload-url", async (req, res) => {
       };
 
     } catch (err) {
-      jobs[videoId] = {
-        status: "failed"
-      };
+      console.error(err);
+      jobs[videoId] = { status: "failed" };
     }
   })();
 });
