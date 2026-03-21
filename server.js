@@ -11,7 +11,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// 🔐 ENV (set in Railway)
+// 🔐 ENV
 const {
   R2_ENDPOINT,
   R2_ACCESS_KEY,
@@ -28,12 +28,29 @@ const s3 = new AWS.S3({
   signatureVersion: "v4"
 });
 
-// 📁 Upload (temp)
-const upload = multer({ dest: "/tmp" });
+// 📁 Multer (TEMP STORAGE)
+const upload = multer({
+  dest: "/tmp",
+  limits: { fileSize: 500 * 1024 * 1024 } // 500MB
+});
 
-// 🚀 Upload API
+// 🧪 HEALTH CHECK
+app.get("/", (req, res) => {
+  res.send("🔥 Video server running");
+});
+
+// 🎬 UPLOAD ROUTE
 app.post("/upload", upload.single("video"), async (req, res) => {
   try {
+    console.log("📥 Incoming upload request");
+
+    // ❌ FIX 1: check file
+    if (!req.file) {
+      return res.status(400).json({
+        error: "No file uploaded. Make sure key = 'video'"
+      });
+    }
+
     const videoId = uuidv4();
     const inputPath = req.file.path;
     const outputDir = `/tmp/${videoId}`;
@@ -53,12 +70,19 @@ app.post("/upload", upload.single("video"), async (req, res) => {
           "-f hls"
         ])
         .output(`${outputDir}/master.m3u8`)
-        .on("end", resolve)
-        .on("error", reject)
+        .on("start", (cmd) => console.log("FFmpeg started:", cmd))
+        .on("end", () => {
+          console.log("✅ FFmpeg finished");
+          resolve();
+        })
+        .on("error", (err) => {
+          console.error("❌ FFmpeg error:", err);
+          reject(err);
+        })
         .run();
     });
 
-    // ☁️ Upload all files to R2
+    // 📤 Upload to R2
     const files = fs.readdirSync(outputDir);
 
     for (let file of files) {
@@ -75,11 +99,13 @@ app.post("/upload", upload.single("video"), async (req, res) => {
       }).promise();
     }
 
-    // 🧹 cleanup
+    console.log("☁️ Uploaded to R2");
+
+    // 🧹 CLEANUP
     fs.rmSync(outputDir, { recursive: true, force: true });
     fs.unlinkSync(inputPath);
 
-    // 🔗 Playback URL
+    // 🔗 FINAL URL
     const playbackUrl = `${PUBLIC_URL}/${videoId}/master.m3u8`;
 
     res.json({
@@ -89,15 +115,16 @@ app.post("/upload", upload.single("video"), async (req, res) => {
     });
 
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Upload failed" });
+    console.error("❌ Upload failed:", err);
+    res.status(500).json({
+      error: "Upload failed",
+      details: err.message
+    });
   }
 });
 
-// 🧪 Health
-app.get("/", (req, res) => {
-  res.send("🔥 Video server running");
+// 🚀 START SERVER
+const PORT = process.env.PORT || 8080;
+app.listen(PORT, () => {
+  console.log("🚀 Running on", PORT);
 });
-
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log("🚀 Running on", PORT));
