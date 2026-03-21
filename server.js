@@ -12,7 +12,6 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// 🔐 ENV
 const {
   R2_ENDPOINT,
   R2_ACCESS_KEY,
@@ -21,7 +20,6 @@ const {
   PUBLIC_URL
 } = process.env;
 
-// ☁️ R2 CONFIG
 const s3 = new AWS.S3({
   endpoint: R2_ENDPOINT,
   accessKeyId: R2_ACCESS_KEY,
@@ -29,26 +27,27 @@ const s3 = new AWS.S3({
   signatureVersion: "v4"
 });
 
-// 📁 Upload config
-const upload = multer({
-  dest: "/tmp",
-  limits: { fileSize: 500 * 1024 * 1024 }
-});
+const upload = multer({ dest: "/tmp" });
 
-// 🧪 Health
-app.get("/", (req, res) => {
-  res.send("🔥 Video server running");
-});
-
-// 🔧 COMMON FUNCTION (process + upload)
-async function processAndUpload(inputPath, videoId) {
+// 🔧 COMMON PROCESS FUNCTION
+async function processAndUpload(input, videoId, isM3U8 = false) {
   const outputDir = `/tmp/${videoId}`;
   fs.mkdirSync(outputDir, { recursive: true });
 
+  console.log("⚙️ Processing:", videoId);
+
   await new Promise((resolve, reject) => {
-    ffmpeg(inputPath)
+    let command = ffmpeg(input);
+
+    if (isM3U8) {
+      command = command.inputOptions([
+        "-protocol_whitelist file,http,https,tcp,tls"
+      ]);
+    }
+
+    command
       .outputOptions([
-        "-codec: copy",
+        "-codec copy",
         "-start_number 0",
         "-hls_time 6",
         "-hls_list_size 0",
@@ -77,7 +76,6 @@ async function processAndUpload(inputPath, videoId) {
   }
 
   fs.rmSync(outputDir, { recursive: true, force: true });
-  fs.unlinkSync(inputPath);
 
   return `${PUBLIC_URL}/${videoId}/master.m3u8`;
 }
@@ -90,9 +88,11 @@ app.post("/upload", upload.single("video"), async (req, res) => {
     }
 
     const videoId = uuidv4();
-    const playbackUrl = await processAndUpload(req.file.path, videoId);
+    const url = await processAndUpload(req.file.path, videoId);
 
-    res.json({ success: true, videoId, playbackUrl });
+    fs.unlinkSync(req.file.path);
+
+    res.json({ success: true, videoId, playbackUrl: url });
 
   } catch (err) {
     console.error(err);
@@ -100,7 +100,7 @@ app.post("/upload", upload.single("video"), async (req, res) => {
   }
 });
 
-// 🌐 URL UPLOAD
+// 🌐 URL UPLOAD (FIXED FOR M3U8)
 app.post("/upload-url", async (req, res) => {
   try {
     const { videoUrl } = req.body;
@@ -110,82 +110,46 @@ app.post("/upload-url", async (req, res) => {
     }
 
     const videoId = uuidv4();
-    const inputPath = `/tmp/${videoId}.mp4`;
 
-    const response = await axios({
-      url: videoUrl,
-      method: "GET",
-      responseType: "stream"
-    });
+    // 🔥 DETECT TYPE
+    const isM3U8 = videoUrl.includes(".m3u8");
 
-    const writer = fs.createWriteStream(inputPath);
-    response.data.pipe(writer);
+    let playbackUrl;
 
-    await new Promise((resolve, reject) => {
-      writer.on("finish", resolve);
-      writer.on("error", reject);
-    });
+    if (isM3U8) {
+      console.log("🎯 M3U8 detected");
 
-    const playbackUrl = await processAndUpload(inputPath, videoId);
+      playbackUrl = await processAndUpload(videoUrl, videoId, true);
+
+    } else {
+      console.log("📥 Downloading file");
+
+      const inputPath = `/tmp/${videoId}.mp4`;
+
+      const response = await axios({
+        url: videoUrl,
+        method: "GET",
+        responseType: "stream"
+      });
+
+      const writer = fs.createWriteStream(inputPath);
+      response.data.pipe(writer);
+
+      await new Promise((res, rej) => {
+        writer.on("finish", res);
+        writer.on("error", rej);
+      });
+
+      playbackUrl = await processAndUpload(inputPath, videoId);
+
+      fs.unlinkSync(inputPath);
+    }
 
     res.json({ success: true, videoId, playbackUrl });
 
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "URL upload failed" });
-  }
-});
-
-// 📦 BATCH UPLOAD
-app.post("/upload-batch", async (req, res) => {
-  try {
-    const { urls } = req.body;
-
-    if (!Array.isArray(urls)) {
-      return res.status(400).json({ error: "urls must be array" });
-    }
-
-    const results = [];
-
-    for (let url of urls) {
-      try {
-        const videoId = uuidv4();
-        const inputPath = `/tmp/${videoId}.mp4`;
-
-        const response = await axios({
-          url,
-          method: "GET",
-          responseType: "stream"
-        });
-
-        const writer = fs.createWriteStream(inputPath);
-        response.data.pipe(writer);
-
-        await new Promise((res, rej) => {
-          writer.on("finish", res);
-          writer.on("error", rej);
-        });
-
-        const playbackUrl = await processAndUpload(inputPath, videoId);
-
-        results.push({
-          url,
-          status: "success",
-          playbackUrl
-        });
-
-      } catch (err) {
-        results.push({
-          url,
-          status: "failed"
-        });
-      }
-    }
-
-    res.json({ results });
-
-  } catch (err) {
-    res.status(500).json({ error: "Batch failed" });
   }
 });
 
