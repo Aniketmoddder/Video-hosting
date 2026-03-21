@@ -12,6 +12,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// 🔐 ENV
 const {
   R2_ENDPOINT,
   R2_ACCESS_KEY,
@@ -20,6 +21,7 @@ const {
   PUBLIC_URL
 } = process.env;
 
+// ☁️ R2
 const s3 = new AWS.S3({
   endpoint: R2_ENDPOINT,
   accessKeyId: R2_ACCESS_KEY,
@@ -27,28 +29,40 @@ const s3 = new AWS.S3({
   signatureVersion: "v4"
 });
 
+// 📁 Upload
 const upload = multer({ dest: "/tmp" });
 
-// 🔧 COMMON PROCESS FUNCTION
-async function processAndUpload(input, videoId, isM3U8 = false) {
+// 🧠 In-memory job store
+const jobs = {};
+
+// 🧪 Health
+app.get("/", (req, res) => {
+  res.send("🔥 Async Video Server Running");
+});
+
+// 🔍 Status API
+app.get("/status/:id", (req, res) => {
+  const job = jobs[req.params.id];
+  if (!job) return res.status(404).json({ error: "Not found" });
+  res.json(job);
+});
+
+// 🔧 PROCESS FUNCTION
+async function processVideo(input, videoId, isM3U8 = false) {
   const outputDir = `/tmp/${videoId}`;
   fs.mkdirSync(outputDir, { recursive: true });
-
-  console.log("⚙️ Processing:", videoId);
 
   await new Promise((resolve, reject) => {
     let command = ffmpeg(input);
 
-    if (isM3U8) {
-      command = command.inputOptions([
-        "-protocol_whitelist file,http,https,tcp,tls"
-      ]);
-    }
-
     command
+      .inputOptions([
+        "-protocol_whitelist file,http,https,tcp,tls,crypto",
+        "-headers User-Agent: Mozilla/5.0"
+      ])
       .outputOptions([
-        "-codec copy",
-        "-start_number 0",
+        "-c copy",
+        "-bsf:a aac_adtstoasc",
         "-hls_time 6",
         "-hls_list_size 0",
         "-f hls"
@@ -80,77 +94,119 @@ async function processAndUpload(input, videoId, isM3U8 = false) {
   return `${PUBLIC_URL}/${videoId}/master.m3u8`;
 }
 
-// 🎬 FILE UPLOAD
+// 🎬 FILE UPLOAD (ASYNC)
 app.post("/upload", upload.single("video"), async (req, res) => {
-  try {
-    if (!req.file) {
-      return res.status(400).json({ error: "No file uploaded" });
-    }
-
-    const videoId = uuidv4();
-    const url = await processAndUpload(req.file.path, videoId);
-
-    fs.unlinkSync(req.file.path);
-
-    res.json({ success: true, videoId, playbackUrl: url });
-
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Upload failed" });
+  if (!req.file) {
+    return res.status(400).json({ error: "No file uploaded" });
   }
+
+  const videoId = uuidv4();
+
+  jobs[videoId] = {
+    status: "processing"
+  };
+
+  res.json({
+    success: true,
+    videoId,
+    status: "processing"
+  });
+
+  // background
+  (async () => {
+    try {
+      const url = await processVideo(req.file.path, videoId);
+      fs.unlinkSync(req.file.path);
+
+      jobs[videoId] = {
+        status: "completed",
+        playbackUrl: url
+      };
+    } catch (err) {
+      jobs[videoId] = {
+        status: "failed"
+      };
+    }
+  })();
 });
 
-// 🌐 URL UPLOAD (FIXED FOR M3U8)
+// 🌐 URL UPLOAD (ASYNC)
 app.post("/upload-url", async (req, res) => {
-  try {
-    const { videoUrl } = req.body;
+  const { videoUrl } = req.body;
 
-    if (!videoUrl) {
-      return res.status(400).json({ error: "videoUrl required" });
-    }
-
-    const videoId = uuidv4();
-
-    // 🔥 DETECT TYPE
-    const isM3U8 = videoUrl.includes(".m3u8");
-
-    let playbackUrl;
-
-    if (isM3U8) {
-      console.log("🎯 M3U8 detected");
-
-      playbackUrl = await processAndUpload(videoUrl, videoId, true);
-
-    } else {
-      console.log("📥 Downloading file");
-
-      const inputPath = `/tmp/${videoId}.mp4`;
-
-      const response = await axios({
-        url: videoUrl,
-        method: "GET",
-        responseType: "stream"
-      });
-
-      const writer = fs.createWriteStream(inputPath);
-      response.data.pipe(writer);
-
-      await new Promise((res, rej) => {
-        writer.on("finish", res);
-        writer.on("error", rej);
-      });
-
-      playbackUrl = await processAndUpload(inputPath, videoId);
-
-      fs.unlinkSync(inputPath);
-    }
-
-    res.json({ success: true, videoId, playbackUrl });
-
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "URL upload failed" });
+  if (!videoUrl) {
+    return res.status(400).json({ error: "videoUrl required" });
   }
+
+  const videoId = uuidv4();
+
+  jobs[videoId] = {
+    status: "processing"
+  };
+
+  res.json({
+    success: true,
+    videoId,
+    status: "processing"
+  });
+
+  // background
+  (async () => {
+    try {
+      const isM3U8 = videoUrl.includes(".m3u8");
+
+      let playbackUrl;
+
+      if (isM3U8) {
+        console.log("🎯 M3U8 detected");
+
+        try {
+          playbackUrl = await processVideo(videoUrl, videoId, true);
+        } catch (err) {
+          // fallback
+          jobs[videoId] = {
+            status: "completed",
+            playbackUrl: videoUrl,
+            type: "external"
+          };
+          return;
+        }
+
+      } else {
+        console.log("📥 Downloading");
+
+        const inputPath = `/tmp/${videoId}.mp4`;
+
+        const response = await axios({
+          url: videoUrl,
+          method: "GET",
+          responseType: "stream"
+        });
+
+        const writer = fs.createWriteStream(inputPath);
+        response.data.pipe(writer);
+
+        await new Promise((res, rej) => {
+          writer.on("finish", res);
+          writer.on("error", rej);
+        });
+
+        playbackUrl = await processVideo(inputPath, videoId);
+
+        fs.unlinkSync(inputPath);
+      }
+
+      jobs[videoId] = {
+        status: "completed",
+        playbackUrl
+      };
+
+    } catch (err) {
+      jobs[videoId] = {
+        status: "failed"
+      };
+    }
+  })();
 });
 
 // 🚀 START
