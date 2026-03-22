@@ -2,12 +2,12 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>STREAM // Infrastructure</title>
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
@@ -16,16 +16,20 @@
         tailwind.config = {
             theme: {
                 extend: {
-                    fontFamily: { sans: ['Inter', 'sans-serif'] },
+                    fontFamily: { 
+                        sans: ['Inter', 'sans-serif'], 
+                        mono: ['JetBrains Mono', 'monospace'] 
+                    },
                     colors: {
-                        base: '#090A0F',      // Deep indigo/black background
-                        surface: '#12131A',   // Solid card background
-                        borderline: 'rgba(255, 255, 255, 0.08)',
-                        textMain: '#FAFAFA',
-                        textMuted: '#A1A1AA',
-                        accent: '#06B6D4',    // Clean Teal/Cyan for active states
-                        success: '#10B981',   // Soft Green
-                        error: '#EF4444'      // Soft Red
+                        base: '#09090b',      // zinc-950
+                        surface: '#18181b',   // zinc-900
+                        borderline: '#27272a',// zinc-800
+                        primary: '#fafafa',   // zinc-50
+                        muted: '#a1a1aa',     // zinc-400
+                        accent: '#4f46e5',    // indigo-600
+                        teal: '#14b8a6',      // teal-500
+                        success: '#10b981',   // emerald-500
+                        danger: '#f43f5e'     // rose-500
                     }
                 }
             }
@@ -33,231 +37,310 @@
     </script>
 
     <style>
-        /* Base Reset & Native Mobile Feel */
-        body { 
-            background-color: theme('colors.base'); 
-            color: theme('colors.textMain'); 
-            -webkit-tap-highlight-color: transparent;
+        body {
+            background-color: theme('colors.base');
+            color: theme('colors.primary');
             -webkit-font-smoothing: antialiased;
-            padding-bottom: calc(80px + env(safe-area-inset-bottom));
+            -moz-osx-font-smoothing: grayscale;
+            overscroll-behavior-y: none;
+            padding-bottom: 90px; /* Space for bottom nav */
         }
         
+        /* Hide scrollbar for a clean app feel */
         ::-webkit-scrollbar { display: none; }
 
-        /* 📱 Core SaaS Components */
+        /* SaaS Components */
         .saas-card {
             background-color: theme('colors.surface');
             border: 1px solid theme('colors.borderline');
-            border-radius: 16px;
+            border-radius: 20px;
             transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease;
         }
-        /* Micro-interaction: Tactile click */
-        .clickable:active { transform: scale(0.96); }
-        
-        /* Inputs & Buttons */
+        .saas-card:active { transform: scale(0.96); }
+
         .saas-input {
-            background: rgba(255,255,255,0.03); border: 1px solid theme('colors.borderline');
-            border-radius: 12px; padding: 14px 16px; color: white; width: 100%; transition: 0.2s;
+            background-color: theme('colors.base');
+            border: 1px solid theme('colors.borderline');
+            border-radius: 12px;
+            padding: 14px 16px;
+            color: theme('colors.primary');
+            width: 100%;
+            transition: all 0.2s ease;
             font-size: 14px;
         }
-        .saas-input:focus { border-color: theme('colors.accent'); outline: none; background: rgba(255,255,255,0.05); }
-        
-        .saas-btn-primary {
-            background-color: white; color: black; border: none; border-radius: 12px;
-            padding: 14px 16px; font-weight: 600; font-size: 14px; width: 100%;
-            display: flex; justify-content: center; align-items: center; gap: 8px; transition: 0.2s;
+        .saas-input:focus {
+            border-color: theme('colors.accent');
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15);
         }
-        .saas-btn-primary:active { transform: scale(0.96); background-color: #E4E4E7; }
 
-        /* 📈 Live Waveform Animation */
-        .waveform { display: flex; align-items: flex-end; gap: 3px; height: 24px; }
-        .wave-bar { width: 3px; background-color: theme('colors.accent'); border-radius: 2px; animation: wave 1.2s ease-in-out infinite; }
-        .wave-bar:nth-child(1) { animation-delay: 0.0s; }
-        .wave-bar:nth-child(2) { animation-delay: 0.2s; }
-        .wave-bar:nth-child(3) { animation-delay: 0.4s; }
-        .wave-bar:nth-child(4) { animation-delay: 0.6s; }
-        @keyframes wave { 0%, 100% { height: 8px; } 50% { height: 24px; } }
+        .saas-btn {
+            background-color: theme('colors.primary');
+            color: theme('colors.base');
+            border-radius: 12px;
+            padding: 14px;
+            font-weight: 600;
+            font-size: 14px;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .saas-btn:active { transform: scale(0.96); background-color: #e4e4e7; }
 
-        /* View Switching */
-        .view-section { display: none; animation: subtleFadeIn 0.3s ease forwards; }
-        .view-section.active { display: block; }
-        @keyframes subtleFadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
-
-        /* Bottom Navigation Edge-to-Edge */
+        /* Bottom Nav Layout */
         .bottom-nav {
             position: fixed; bottom: 0; left: 0; right: 0;
-            background-color: rgba(9, 10, 15, 0.85); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
-            border-top: 1px solid theme('colors.borderline'); z-index: 50;
+            background-color: rgba(9, 9, 11, 0.85);
+            backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+            border-top: 1px solid theme('colors.borderline');
             padding-bottom: env(safe-area-inset-bottom);
+            z-index: 50;
         }
-        .nav-item { color: theme('colors.textMuted'); transition: 0.2s; display: flex; flex-direction: column; items-center; gap: 4px; }
-        .nav-item.active { color: theme('colors.accent'); }
+        .nav-item {
+            display: flex; flex-direction: column; align-items: center; gap: 4px;
+            color: theme('colors.muted'); font-size: 10px; font-weight: 500;
+            transition: color 0.2s; width: 60px;
+        }
+        .nav-item.active { color: theme('colors.primary'); }
+        .nav-item i { width: 22px; height: 22px; }
         
+        .fab-wrapper { position: relative; top: -20px; }
         .fab-button {
-            width: 48px; height: 48px; background-color: theme('colors.accent'); color: black;
-            border-radius: 24px; display: flex; align-items: center; justify-content: center;
-            transform: translateY(-8px); box-shadow: 0 4px 12px rgba(6, 182, 212, 0.3);
+            width: 56px; height: 56px; border-radius: 50%;
+            background-color: theme('colors.accent'); color: white;
+            display: flex; align-items: center; justify-content: center;
+            border: 4px solid theme('colors.base');
+            box-shadow: 0 8px 16px rgba(79, 70, 229, 0.25);
+            transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
         }
+        .fab-button:active { transform: scale(0.92); }
+
+        /* Animated Waveform */
+        .waveform { display: flex; align-items: flex-end; gap: 3px; height: 24px; }
+        .wave-bar { width: 4px; background-color: theme('colors.teal'); border-radius: 2px; animation: wave 1.2s ease-in-out infinite; }
+        .wave-bar:nth-child(1) { animation-delay: 0.0s; height: 12px; }
+        .wave-bar:nth-child(2) { animation-delay: 0.2s; height: 24px; }
+        .wave-bar:nth-child(3) { animation-delay: 0.4s; height: 16px; }
+        .wave-bar:nth-child(4) { animation-delay: 0.6s; height: 20px; }
+        .wave-bar:nth-child(5) { animation-delay: 0.8s; height: 10px; }
+        @keyframes wave { 0%, 100% { transform: scaleY(0.5); } 50% { transform: scaleY(1); } }
+
+        /* Clean Flat Progress */
+        .flat-progress-bg { width: 100%; height: 6px; background-color: theme('colors.base'); border-radius: 4px; border: 1px solid theme('colors.borderline'); overflow: hidden; }
+        .flat-progress-fill { height: 100%; background-color: theme('colors.accent'); width: 0%; transition: width 0.3s ease; }
+
+        /* View Switching */
+        .view-section { display: none; animation: softFade 0.3s ease forwards; }
+        .view-section.active { display: block; }
+        @keyframes softFade { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
 <body>
 
-    <header class="flex justify-between items-center px-5 py-5 sticky top-0 bg-base/90 backdrop-blur-md z-40 border-b border-borderline/50">
-        <div class="font-bold text-lg tracking-tight">STREAM</div>
-        <div class="flex items-center gap-2 bg-success/10 text-success px-2.5 py-1.5 rounded-md text-[11px] font-semibold tracking-wide border border-success/20">
-            <span class="w-1.5 h-1.5 bg-success rounded-full animate-pulse"></span> R2 CONNECTED
+    <header class="fixed top-0 left-0 right-0 h-16 bg-[#09090b]/95 backdrop-blur-md border-b border-borderline z-40 flex items-center justify-between px-5">
+        <div class="flex items-center gap-2">
+            <span class="font-bold text-lg tracking-tight">STREAM</span>
+            <span class="text-muted text-lg">/</span>
+            <span class="text-sm font-medium">Dashboard</span>
+        </div>
+        <div class="flex items-center gap-2 bg-success/10 border border-success/20 px-2.5 py-1.5 rounded-full">
+            <span class="w-1.5 h-1.5 bg-success rounded-full animate-pulse"></span>
+            <span class="text-[10px] font-mono font-medium text-success uppercase tracking-wider">Connected</span>
         </div>
     </header>
 
-    <main class="px-5 pt-6 pb-6 max-w-lg mx-auto">
+    <main class="pt-24 px-5 max-w-xl mx-auto">
         
         <section id="view-overview" class="view-section active">
-            <div class="mb-6">
-                <h1 class="text-2xl font-bold tracking-tight mb-1">Dashboard</h1>
-                <p class="text-sm text-textMuted font-medium">System telemetry</p>
+            
+            <div class="saas-card p-6 mb-4 relative bg-gradient-to-b from-[#18181b] to-[#09090b]">
+                <div class="flex justify-between items-start mb-6">
+                    <div class="flex items-center gap-2">
+                        <span class="relative flex h-2 w-2">
+                          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-success opacity-75"></span>
+                          <span class="relative inline-flex rounded-full h-2 w-2 bg-success"></span>
+                        </span>
+                        <span class="text-xs font-medium text-muted uppercase tracking-wider">Streaming Quality</span>
+                    </div>
+                    <i data-lucide="activity" class="w-4 h-4 text-muted"></i>
+                </div>
+                
+                <div class="text-5xl font-mono font-bold tracking-tighter text-primary mb-1">720p</div>
+                <div class="text-sm font-medium text-muted">HLS Fast Encoding Engine</div>
+                
+                <div class="absolute bottom-6 right-6 waveform">
+                    <div class="wave-bar"></div>
+                    <div class="wave-bar"></div>
+                    <div class="wave-bar"></div>
+                    <div class="wave-bar"></div>
+                    <div class="wave-bar"></div>
+                </div>
             </div>
 
-            <div class="grid grid-cols-2 gap-4">
+            <div class="grid grid-cols-2 gap-4 mb-4">
                 
-                <div class="saas-card clickable col-span-2 p-5 relative">
-                    <div class="flex justify-between items-start mb-6">
-                        <div class="text-[11px] font-semibold text-textMuted uppercase tracking-wider">Streaming Quality</div>
-                        <div class="waveform">
-                            <div class="wave-bar"></div><div class="wave-bar"></div>
-                            <div class="wave-bar"></div><div class="wave-bar"></div>
-                        </div>
+                <div class="saas-card p-5 flex flex-col justify-between aspect-[4/3]">
+                    <div class="flex justify-between items-start">
+                        <i data-lucide="video" class="w-5 h-5 text-accent"></i>
                     </div>
-                    <div class="flex items-baseline gap-3">
-                        <div class="text-5xl font-bold tracking-tighter">720p</div>
-                        <div class="text-sm text-success font-medium flex items-center gap-1">
-                            <i data-lucide="check-circle-2" class="w-4 h-4"></i> Active
-                        </div>
+                    <div>
+                        <div class="text-3xl font-mono font-bold text-primary" id="stat-videos">--</div>
+                        <div class="text-[11px] font-medium text-muted uppercase tracking-wider mt-1">Total Assets</div>
                     </div>
                 </div>
 
-                <div class="saas-card clickable col-span-1 p-5 flex flex-col justify-between min-h-[140px]">
-                    <i data-lucide="video" class="w-5 h-5 text-textMuted mb-4"></i>
+                <div class="saas-card p-5 flex flex-col justify-between aspect-[4/3]">
+                    <div class="flex justify-between items-start">
+                        <i data-lucide="database" class="w-5 h-5 text-teal"></i>
+                    </div>
                     <div>
-                        <div class="text-2xl font-bold tracking-tight mb-0.5" id="stat-videos">--</div>
-                        <div class="text-[11px] font-semibold text-textMuted uppercase tracking-wider">Total Assets</div>
+                        <div class="text-3xl font-mono font-bold text-primary">R2</div>
+                        <div class="text-[11px] font-medium text-success uppercase tracking-wider mt-1">Operational</div>
                     </div>
                 </div>
 
-                <div class="saas-card clickable col-span-1 p-5 flex flex-col justify-between min-h-[140px]">
-                    <i data-lucide="database" class="w-5 h-5 text-textMuted mb-4"></i>
+            </div>
+
+            <div class="saas-card p-5 flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-full bg-borderline flex items-center justify-center">
+                        <i data-lucide="cpu" class="w-5 h-5 text-primary"></i>
+                    </div>
                     <div>
-                        <div class="text-2xl font-bold tracking-tight mb-0.5">R2</div>
-                        <div class="text-[11px] font-semibold text-success uppercase tracking-wider">Operational</div>
+                        <div class="text-sm font-semibold text-primary">FFmpeg Process</div>
+                        <div class="text-xs font-mono text-muted mt-0.5">libx264 • crf 28</div>
                     </div>
                 </div>
+                <span class="text-xs font-medium bg-base border border-borderline px-2 py-1 rounded-md text-muted">Idle</span>
             </div>
         </section>
 
         <section id="view-library" class="view-section">
-            <div class="flex justify-between items-center mb-6">
+            <div class="flex justify-between items-end mb-6">
                 <div>
-                    <h1 class="text-2xl font-bold tracking-tight mb-1">Library</h1>
-                    <p class="text-sm text-textMuted font-medium">Manage R2 buckets</p>
+                    <h2 class="text-2xl font-bold tracking-tight">Library</h2>
+                    <p class="text-sm text-muted mt-1">Manage Cloudflare R2 assets</p>
                 </div>
-                <button onclick="fetchLibrary()" class="w-9 h-9 rounded-full bg-white/5 flex items-center justify-center text-textMain clickable transition-colors">
+                <button onclick="fetchLibrary()" class="w-10 h-10 rounded-full border border-borderline flex items-center justify-center text-primary active:scale-90 transition-transform bg-surface">
                     <i data-lucide="refresh-cw" class="w-4 h-4"></i>
                 </button>
             </div>
             
-            <div class="flex flex-col gap-3" id="library-container">
-                <div class="text-center p-8 text-textMuted text-sm font-medium">Syncing data...</div>
+            <div id="library-container" class="flex flex-col gap-3">
+                <div class="text-center p-10 text-muted font-mono text-sm border border-dashed border-borderline rounded-2xl">
+                    <i data-lucide="loader" class="w-5 h-5 animate-spin mx-auto mb-2"></i> Syncing...
+                </div>
             </div>
         </section>
 
         <section id="view-upload" class="view-section">
-            <div class="mb-6">
-                <h1 class="text-2xl font-bold tracking-tight mb-1">Ingest Media</h1>
-                <p class="text-sm text-textMuted font-medium">Process and encode to HLS</p>
-            </div>
+            <h2 class="text-2xl font-bold tracking-tight mb-1">Ingest Media</h2>
+            <p class="text-sm text-muted mb-6">Process and encode to 720p HLS</p>
             
             <div class="saas-card p-5 mb-6">
-                <div class="flex p-1 bg-black/40 border border-borderline rounded-xl mb-6">
-                    <button class="flex-1 py-2 text-sm font-semibold rounded-lg bg-white/10 text-white shadow-sm transition-all" id="tab-file">Local File</button>
-                    <button class="flex-1 py-2 text-sm font-semibold rounded-lg text-textMuted transition-all" id="tab-url">Remote URL</button>
+                <div class="flex p-1 bg-base border border-borderline rounded-xl mb-6">
+                    <button class="flex-1 py-2 text-sm font-semibold rounded-lg bg-surface text-primary shadow-sm border border-borderline transition-all" id="tab-file">Local File</button>
+                    <button class="flex-1 py-2 text-sm font-medium rounded-lg text-muted transition-all" id="tab-url">Remote URL</button>
                 </div>
 
                 <div id="upload-file-module">
-                    <div class="border border-dashed border-borderline rounded-xl p-8 text-center clickable transition-colors hover:border-accent" onclick="document.getElementById('videoInput').click()">
-                        <i data-lucide="upload-cloud" class="w-6 h-6 text-textMuted mx-auto mb-3"></i>
-                        <p class="font-semibold text-sm mb-1">Select video file</p>
-                        <p class="text-[11px] text-textMuted">MP4, MKV, WEBM (Max 1GB)</p>
+                    <div class="border-2 border-dashed border-borderline rounded-xl p-8 text-center transition-colors cursor-pointer active:bg-base" onclick="document.getElementById('videoInput').click()">
+                        <div class="w-12 h-12 rounded-full bg-surface border border-borderline mx-auto flex items-center justify-center mb-3">
+                            <i data-lucide="upload" class="w-5 h-5 text-primary"></i>
+                        </div>
+                        <p class="font-medium text-sm text-primary mb-1">Tap to select video</p>
+                        <p class="text-[11px] font-mono text-muted">MP4, WEBM (Max 1GB)</p>
                     </div>
                     <input type="file" id="videoInput" accept="video/*" class="hidden">
                 </div>
 
                 <div id="upload-url-module" class="hidden">
-                    <label class="block text-[11px] font-semibold text-textMuted uppercase tracking-wider mb-2 ml-1">Source URL</label>
+                    <label class="block text-xs font-semibold text-muted mb-2 uppercase tracking-wider">Source URL</label>
                     <input type="url" id="urlInput" class="saas-input mb-4" placeholder="https://example.com/video.mp4">
-                    <button id="submitUrlBtn" class="saas-btn-primary clickable">
-                        Process URL <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                    <button id="submitUrlBtn" class="saas-btn">
+                        Process URL
                     </button>
                 </div>
             </div>
 
             <div id="job-tracker" class="saas-card p-5 hidden">
                 <div class="flex items-center justify-between mb-4">
-                    <div class="flex items-center gap-2 font-semibold text-sm">
-                        <i data-lucide="cpu" class="w-4 h-4 text-accent"></i> FFmpeg Engine
+                    <div class="flex items-center gap-2">
+                        <i data-lucide="server" class="w-4 h-4 text-accent"></i>
+                        <span class="text-sm font-semibold text-primary">Processing Job</span>
                     </div>
-                    <span class="text-[10px] font-bold text-accent bg-accent/10 px-2 py-1 rounded-md tracking-wider uppercase" id="job-status">Encoding</span>
+                    <span class="text-[10px] font-mono font-bold text-teal uppercase tracking-wider" id="job-status">Encoding...</span>
                 </div>
                 
-                <div class="w-full h-1.5 bg-black/50 border border-borderline rounded-full overflow-hidden mb-3">
-                    <div class="h-full bg-accent w-full" style="animation: indeterminate 1.5s infinite ease-in-out;"></div>
+                <div class="flat-progress-bg mb-2">
+                    <div class="flat-progress-fill w-full" style="animation: indeterminate 2s infinite ease-in-out;"></div>
                 </div>
-                <div class="text-[11px] text-textMuted truncate font-mono" id="job-id">ID: initializing...</div>
+                <div class="text-[10px] font-mono text-muted truncate" id="job-id">ID: initializing...</div>
             </div>
         </section>
 
     </main>
 
-    <nav class="bottom-nav flex justify-around items-center px-6 py-3">
-        <button class="nav-item active clickable" onclick="switchView('overview', this)">
-            <i data-lucide="home" class="w-5 h-5 mb-1"></i>
-            <span class="text-[10px] font-semibold">Home</span>
-        </button>
-        <button class="nav-item clickable" onclick="switchView('library', this); fetchLibrary();">
-            <i data-lucide="folder" class="w-5 h-5 mb-1"></i>
-            <span class="text-[10px] font-semibold">Files</span>
-        </button>
-        
-        <button class="fab-button clickable" onclick="switchView('upload', null); deactivateNavs();">
-            <i data-lucide="plus" class="w-6 h-6"></i>
-        </button>
-        
-        <button class="nav-item clickable">
-            <i data-lucide="bar-chart-2" class="w-5 h-5 mb-1"></i>
-            <span class="text-[10px] font-semibold">Data</span>
-        </button>
-        <button class="nav-item clickable">
-            <i data-lucide="settings" class="w-5 h-5 mb-1"></i>
-            <span class="text-[10px] font-semibold">Settings</span>
-        </button>
+    <nav class="bottom-nav">
+        <div class="flex justify-around items-center h-16 px-2">
+            
+            <button class="nav-item active" onclick="switchView('overview', this)">
+                <i data-lucide="home"></i>
+                <span>Home</span>
+            </button>
+            
+            <button class="nav-item" onclick="switchView('library', this); fetchLibrary();">
+                <i data-lucide="folder"></i>
+                <span>Files</span>
+            </button>
+            
+            <div class="fab-wrapper">
+                <button class="fab-button" onclick="switchView('upload', null); deactivateNavItems();">
+                    <i data-lucide="plus"></i>
+                </button>
+            </div>
+            
+            <button class="nav-item">
+                <i data-lucide="bar-chart-2"></i>
+                <span>Metrics</span>
+            </button>
+            
+            <button class="nav-item">
+                <i data-lucide="settings"></i>
+                <span>Settings</span>
+            </button>
+
+        </div>
     </nav>
 
-    <div id="toast" class="fixed top-24 left-1/2 transform -translate-x-1/2 bg-white text-black px-4 py-2.5 rounded-full font-semibold text-[13px] shadow-lg transition-all duration-300 opacity-0 translate-y-[-10px] pointer-events-none z-[100] flex items-center gap-2">
+    <div id="toast" class="fixed top-24 left-1/2 transform -translate-x-1/2 bg-primary text-base px-4 py-2.5 rounded-full font-semibold text-xs transition-all duration-300 opacity-0 translate-y-[-10px] pointer-events-none z-[100] shadow-lg flex items-center gap-2">
         <i data-lucide="info" class="w-4 h-4"></i> <span id="toast-msg">Message</span>
     </div>
 
     <style>
-        @keyframes indeterminate { 0% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }
+        @keyframes indeterminate { 
+            0% { transform: translateX(-100%); width: 50%; } 
+            100% { transform: translateX(200%); width: 50%; } 
+        }
     </style>
 
     <script>
         lucide.createIcons();
-        const API_BASE = window.location.origin; // Dynamically uses your Railway URL
+        const API_BASE = window.location.origin; // Uses your live Railway URL
 
-        // --- Core UI Functions ---
+        // --- UI Interactions ---
         function showToast(msg) {
-            const toast = document.getElementById('toast');
             document.getElementById('toast-msg').textContent = msg;
-            toast.style.opacity = '1'; toast.style.transform = 'translate(-50%, 0)';
-            setTimeout(() => { toast.style.opacity = '0'; toast.style.transform = 'translate(-50%, -10px)'; }, 3000);
+            const toast = document.getElementById('toast');
+            toast.style.opacity = '1';
+            toast.style.transform = 'translate(-50%, 0)';
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translate(-50%, -10px)';
+            }, 3000);
         }
 
         function switchView(viewId, btn) {
@@ -265,25 +348,25 @@
             document.getElementById('view-' + viewId).classList.add('active');
             
             if(btn) {
-                deactivateNavs();
+                deactivateNavItems();
                 btn.classList.add('active');
             }
         }
 
-        function deactivateNavs() {
+        function deactivateNavItems() {
             document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
         }
 
-        // --- Upload Tabs ---
+        // Segmented Control Tabs
         document.getElementById('tab-file').onclick = () => {
-            document.getElementById('tab-file').className = "flex-1 py-2 text-sm font-semibold rounded-lg bg-white/10 text-white shadow-sm transition-all";
-            document.getElementById('tab-url').className = "flex-1 py-2 text-sm font-semibold rounded-lg text-textMuted transition-all";
+            document.getElementById('tab-file').className = "flex-1 py-2 text-sm font-semibold rounded-lg bg-surface text-primary shadow-sm border border-borderline transition-all";
+            document.getElementById('tab-url').className = "flex-1 py-2 text-sm font-medium rounded-lg text-muted transition-all border border-transparent";
             document.getElementById('upload-file-module').classList.remove('hidden');
             document.getElementById('upload-url-module').classList.add('hidden');
         };
         document.getElementById('tab-url').onclick = () => {
-            document.getElementById('tab-url').className = "flex-1 py-2 text-sm font-semibold rounded-lg bg-white/10 text-white shadow-sm transition-all";
-            document.getElementById('tab-file').className = "flex-1 py-2 text-sm font-semibold rounded-lg text-textMuted transition-all";
+            document.getElementById('tab-url').className = "flex-1 py-2 text-sm font-semibold rounded-lg bg-surface text-primary shadow-sm border border-borderline transition-all";
+            document.getElementById('tab-file').className = "flex-1 py-2 text-sm font-medium rounded-lg text-muted transition-all border border-transparent";
             document.getElementById('upload-url-module').classList.remove('hidden');
             document.getElementById('upload-file-module').classList.add('hidden');
         };
@@ -291,7 +374,7 @@
         // --- Library Logic ---
         async function fetchLibrary() {
             const container = document.getElementById('library-container');
-            container.innerHTML = '<div class="text-center p-6 text-textMuted text-sm font-medium"><i data-lucide="loader" class="animate-spin inline w-4 h-4 mr-2"></i> Syncing...</div>';
+            container.innerHTML = '<div class="text-center p-8 text-muted font-mono text-xs"><i data-lucide="loader" class="animate-spin inline mr-2 w-4 h-4"></i> Loading R2...</div>';
             lucide.createIcons();
 
             try {
@@ -301,33 +384,34 @@
                 document.getElementById('stat-videos').textContent = data.videos ? data.videos.length : 0;
                 
                 if(!data.videos || data.videos.length === 0) {
-                    container.innerHTML = '<div class="text-center p-8 text-textMuted text-sm font-medium">No assets found in R2.</div>';
+                    container.innerHTML = '<div class="text-center p-8 text-muted font-mono text-xs border border-dashed border-borderline rounded-2xl">0 Assets Found</div>';
                     return;
                 }
 
+                // Render Clean List
                 container.innerHTML = data.videos.map(v => `
-                    <div class="saas-card clickable p-4 flex items-center gap-4" id="vid-${v.id}">
-                        <div class="w-10 h-10 rounded-lg bg-accent/10 text-accent flex items-center justify-center shrink-0">
+                    <div class="saas-card p-4 flex items-center gap-4" id="vid-${v.id}">
+                        <div class="w-10 h-10 rounded-xl bg-surface border border-borderline flex items-center justify-center text-accent shrink-0">
                             <i data-lucide="film" class="w-5 h-5"></i>
                         </div>
                         <div class="flex-1 min-w-0">
-                            <h4 class="text-[13px] font-semibold truncate text-white">${v.id.substring(0, 18)}...</h4>
-                            <div class="text-[11px] font-medium text-textMuted mt-0.5">master.m3u8</div>
+                            <h4 class="text-sm font-semibold text-primary truncate">${v.id.substring(0, 16)}...</h4>
+                            <div class="text-[10px] font-mono text-muted mt-0.5">master.m3u8</div>
                         </div>
-                        <div class="flex gap-2">
-                            <button onclick="copyUrl('${v.url}')" class="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-textMuted hover:text-white transition-colors"><i data-lucide="copy" class="w-3.5 h-3.5"></i></button>
-                            <button onclick="deleteVideo('${v.id}')" class="w-8 h-8 rounded-full bg-error/10 flex items-center justify-center text-error hover:bg-error hover:text-white transition-colors"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>
+                        <div class="flex items-center gap-2 shrink-0">
+                            <button onclick="copyUrl('${v.url}')" class="w-8 h-8 rounded-lg bg-base border border-borderline flex items-center justify-center text-muted hover:text-primary active:scale-90 transition-all"><i data-lucide="copy" class="w-3.5 h-3.5"></i></button>
+                            <button onclick="deleteVideo('${v.id}')" class="w-8 h-8 rounded-lg bg-base border border-borderline flex items-center justify-center text-danger hover:bg-danger/10 active:scale-90 transition-all"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>
                         </div>
                     </div>
                 `).join('');
                 lucide.createIcons();
             } catch (err) {
-                container.innerHTML = `<div class="text-error text-sm font-medium p-6 text-center">API Offline.</div>`;
+                container.innerHTML = `<div class="text-danger text-xs font-mono p-6 text-center border border-danger/20 rounded-2xl bg-danger/5">API Offline</div>`;
             }
         }
 
         async function deleteVideo(id) {
-            if(!confirm("Permanently delete this asset?")) return;
+            if(!confirm("Permenantly delete this asset from R2?")) return;
             try {
                 await fetch(`${API_BASE}/video/${id}`, { method: 'DELETE' });
                 document.getElementById(`vid-${id}`).remove();
@@ -349,8 +433,8 @@
         async function pollJobStatus(jobId) {
             tracker.classList.remove('hidden');
             jobIdText.textContent = `ID: ${jobId}`;
-            statusText.textContent = "ENCODING";
-            statusText.className = "text-[10px] font-bold text-accent bg-accent/10 px-2 py-1 rounded-md tracking-wider uppercase";
+            statusText.textContent = "ENCODING...";
+            statusText.className = "text-[10px] font-mono font-bold text-teal uppercase tracking-wider";
 
             const interval = setInterval(async () => {
                 try {
@@ -360,20 +444,22 @@
                     if (job.status === 'completed') {
                         clearInterval(interval);
                         statusText.textContent = "SUCCESS";
-                        statusText.className = "text-[10px] font-bold text-success bg-success/10 px-2 py-1 rounded-md tracking-wider uppercase";
-                        showToast("Encoding completed successfully");
+                        statusText.className = "text-[10px] font-mono font-bold text-success uppercase tracking-wider";
+                        showToast("Processing Complete!");
                         setTimeout(() => { 
                             tracker.classList.add('hidden'); 
                             fetchLibrary(); 
                             switchView('library', document.querySelectorAll('.nav-item')[1]); 
-                        }, 2000);
+                        }, 1500);
                     } else if (job.status === 'failed') {
                         clearInterval(interval);
                         statusText.textContent = "FAILED";
-                        statusText.className = "text-[10px] font-bold text-error bg-error/10 px-2 py-1 rounded-md tracking-wider uppercase";
-                        showToast("FFmpeg Encoding Failed");
+                        statusText.className = "text-[10px] font-mono font-bold text-danger uppercase tracking-wider";
+                        showToast("Encoding Failed");
                     }
-                } catch (e) { clearInterval(interval); }
+                } catch (e) {
+                    clearInterval(interval);
+                }
             }, 2000);
         }
 
@@ -388,7 +474,7 @@
             try {
                 tracker.classList.remove('hidden');
                 statusText.textContent = "UPLOADING";
-                showToast("Transmitting payload...");
+                showToast("Sending to node...");
                 
                 const res = await fetch(`${API_BASE}/upload`, { method: 'POST', body: formData });
                 const data = await res.json();
