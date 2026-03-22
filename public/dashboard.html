@@ -2,181 +2,152 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>STREAM // R2 Console</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>STREAM // Infrastructure</title>
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
 
-    <style>
-        /* 🎨 FORCED PREMIUM PALETTE (Bypasses Light Mode Bugs) */
-        :root {
-            --bg-void: #030305;
-            --card-glass: rgba(15, 15, 18, 0.5);
-            --card-hover: rgba(25, 25, 30, 0.7);
-            --border-subtle: rgba(255, 255, 255, 0.06);
-            --text-primary: #FFFFFF;
-            --text-secondary: #8A8F98;
-            --accent-blue: #0055FF;
-            --accent-cyan: #00E5FF;
-            --accent-violet: #8B5CF6;
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
+                    colors: {
+                        base: '#090A0F',      // Deep indigo/black background
+                        surface: '#12131A',   // Solid card background
+                        borderline: 'rgba(255, 255, 255, 0.08)',
+                        textMain: '#FAFAFA',
+                        textMuted: '#A1A1AA',
+                        accent: '#06B6D4',    // Clean Teal/Cyan for active states
+                        success: '#10B981',   // Soft Green
+                        error: '#EF4444'      // Soft Red
+                    }
+                }
+            }
         }
+    </script>
 
-        /* Base Resets */
-        body {
-            font-family: 'Outfit', sans-serif;
-            background-color: var(--bg-void);
-            color: var(--text-primary);
+    <style>
+        /* Base Reset & Native Mobile Feel */
+        body { 
+            background-color: theme('colors.base'); 
+            color: theme('colors.textMain'); 
+            -webkit-tap-highlight-color: transparent;
             -webkit-font-smoothing: antialiased;
-            overflow-x: hidden;
-            padding-bottom: 120px; /* Room for dock */
-            margin: 0;
+            padding-bottom: calc(80px + env(safe-area-inset-bottom));
         }
         
-        .font-tech { font-family: 'Fira Code', monospace; }
         ::-webkit-scrollbar { display: none; }
 
-        /* ✨ ADVANCED AURORA SHADER + NOISE GRAIN */
-        .aurora-bg {
-            position: fixed; inset: 0; z-index: -2; background: var(--bg-void); overflow: hidden;
+        /* 📱 Core SaaS Components */
+        .saas-card {
+            background-color: theme('colors.surface');
+            border: 1px solid theme('colors.borderline');
+            border-radius: 16px;
+            transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease;
         }
-        .aurora-blob-1 {
-            position: absolute; top: -10%; left: -20%; width: 60vw; height: 60vw; min-width: 400px; min-height: 400px;
-            background: rgba(0, 85, 255, 0.15); filter: blur(90px);
-            animation: float 18s infinite ease-in-out alternate;
-        }
-        .aurora-blob-2 {
-            position: absolute; bottom: -10%; right: -20%; width: 70vw; height: 70vw; min-width: 500px; min-height: 500px;
-            background: rgba(139, 92, 246, 0.1); filter: blur(120px);
-            animation: float 22s infinite ease-in-out alternate-reverse;
-        }
-        @keyframes float {
-            0% { transform: translate(0, 0) scale(1); }
-            100% { transform: translate(10%, 15%) scale(1.1); }
-        }
-        .noise-overlay {
-            position: fixed; inset: 0; z-index: -1; opacity: 0.04; pointer-events: none;
-            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
-        }
-
-        /* 📱 PREMIUM COMPONENTS */
-        .obsidian-card {
-            background: var(--card-glass);
-            backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
-            border: 1px solid var(--border-subtle);
-            border-radius: 24px;
-            box-shadow: inset 0 1px 0 rgba(255,255,255,0.02), 0 20px 40px rgba(0,0,0,0.5);
-            transition: all 0.3s ease;
-        }
-        .obsidian-card:active { transform: scale(0.98); }
-
-        /* 📱 DYNAMIC ISLAND DOCK (Flush, sleek) */
-        .dynamic-dock {
-            position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
-            background: rgba(5, 5, 5, 0.85); backdrop-filter: blur(30px); -webkit-backdrop-filter: blur(30px);
-            border: 1px solid rgba(255,255,255,0.1); border-radius: 100px;
-            padding: 6px; display: flex; align-items: center; gap: 4px; z-index: 100;
-            box-shadow: 0 30px 60px rgba(0,0,0,0.8), inset 0 1px 0 rgba(255,255,255,0.1);
-        }
-        .dock-item {
-            width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
-            color: var(--text-secondary); background: transparent; border: none; transition: all 0.3s ease; cursor: pointer;
-        }
-        .dock-item:hover { color: var(--text-primary); }
-        .dock-item.active { background: rgba(255,255,255,0.1); color: var(--text-primary); }
+        /* Micro-interaction: Tactile click */
+        .clickable:active { transform: scale(0.96); }
         
-        .dock-action {
-            width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
-            background: var(--text-primary); color: var(--bg-void); border: none; transition: all 0.3s ease; cursor: pointer; margin: 0 4px;
-        }
-        .dock-action:active { transform: scale(0.9); }
-
         /* Inputs & Buttons */
-        .cyber-input {
-            background: rgba(0,0,0,0.5); border: 1px solid var(--border-subtle); border-radius: 16px;
-            padding: 16px 20px; color: var(--text-primary); width: 100%; transition: 0.3s; font-size: 14px;
+        .saas-input {
+            background: rgba(255,255,255,0.03); border: 1px solid theme('colors.borderline');
+            border-radius: 12px; padding: 14px 16px; color: white; width: 100%; transition: 0.2s;
+            font-size: 14px;
         }
-        .cyber-input:focus { border-color: rgba(255,255,255,0.3); outline: none; background: rgba(20,20,20,0.8); }
+        .saas-input:focus { border-color: theme('colors.accent'); outline: none; background: rgba(255,255,255,0.05); }
         
-        .primary-btn {
-            background: var(--text-primary); color: var(--bg-void); border: none; border-radius: 16px;
-            padding: 16px; width: 100%; font-weight: 600; font-size: 15px; transition: 0.3s;
-            display: flex; justify-content: center; align-items: center; gap: 8px; cursor: pointer;
+        .saas-btn-primary {
+            background-color: white; color: black; border: none; border-radius: 12px;
+            padding: 14px 16px; font-weight: 600; font-size: 14px; width: 100%;
+            display: flex; justify-content: center; align-items: center; gap: 8px; transition: 0.2s;
         }
-        .primary-btn:active { transform: scale(0.98); background: #E0E0E0; }
+        .saas-btn-primary:active { transform: scale(0.96); background-color: #E4E4E7; }
 
-        /* View Transitions */
-        .view-section { display: none; opacity: 0; transform: translateY(10px); transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
-        .view-section.active { display: block; opacity: 1; transform: translateY(0); }
+        /* 📈 Live Waveform Animation */
+        .waveform { display: flex; align-items: flex-end; gap: 3px; height: 24px; }
+        .wave-bar { width: 3px; background-color: theme('colors.accent'); border-radius: 2px; animation: wave 1.2s ease-in-out infinite; }
+        .wave-bar:nth-child(1) { animation-delay: 0.0s; }
+        .wave-bar:nth-child(2) { animation-delay: 0.2s; }
+        .wave-bar:nth-child(3) { animation-delay: 0.4s; }
+        .wave-bar:nth-child(4) { animation-delay: 0.6s; }
+        @keyframes wave { 0%, 100% { height: 8px; } 50% { height: 24px; } }
 
-        /* Library List Items */
-        .asset-row {
-            display: flex; align-items: center; gap: 14px; padding: 14px; border-radius: 16px;
-            background: rgba(255,255,255,0.02); border: 1px solid transparent; transition: 0.2s; margin-bottom: 8px;
+        /* View Switching */
+        .view-section { display: none; animation: subtleFadeIn 0.3s ease forwards; }
+        .view-section.active { display: block; }
+        @keyframes subtleFadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Bottom Navigation Edge-to-Edge */
+        .bottom-nav {
+            position: fixed; bottom: 0; left: 0; right: 0;
+            background-color: rgba(9, 10, 15, 0.85); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+            border-top: 1px solid theme('colors.borderline'); z-index: 50;
+            padding-bottom: env(safe-area-inset-bottom);
         }
-        .asset-row:active { background: rgba(255,255,255,0.05); border-color: var(--border-subtle); }
-        .asset-icon { width: 40px; height: 40px; border-radius: 12px; background: rgba(0,229,255,0.1); color: var(--accent-cyan); display: flex; align-items: center; justify-content: center; }
-
-        /* Progress Bar (Neon Line instead of circle) */
-        .neon-progress-bg { height: 4px; background: rgba(255,255,255,0.05); border-radius: 4px; overflow: hidden; width: 100%; }
-        .neon-progress-fill { height: 100%; background: var(--accent-cyan); width: 0%; box-shadow: 0 0 10px var(--accent-cyan); transition: width 0.3s ease; }
+        .nav-item { color: theme('colors.textMuted'); transition: 0.2s; display: flex; flex-direction: column; items-center; gap: 4px; }
+        .nav-item.active { color: theme('colors.accent'); }
+        
+        .fab-button {
+            width: 48px; height: 48px; background-color: theme('colors.accent'); color: black;
+            border-radius: 24px; display: flex; align-items: center; justify-content: center;
+            transform: translateY(-8px); box-shadow: 0 4px 12px rgba(6, 182, 212, 0.3);
+        }
     </style>
 </head>
 <body>
 
-    <div class="aurora-bg">
-        <div class="aurora-blob-1"></div>
-        <div class="aurora-blob-2"></div>
-    </div>
-    <div class="noise-overlay"></div>
-
-    <header class="fixed top-0 left-0 right-0 h-20 z-50 flex items-center justify-between px-6 bg-gradient-to-b from-[#030305] to-transparent">
-        <div class="flex items-center gap-2">
-            <div class="w-2.5 h-2.5 rounded-full bg-[#00E5FF] shadow-[0_0_10px_#00E5FF]"></div>
-            <span class="font-bold text-lg tracking-tight">STREAM</span>
-        </div>
-        <div class="flex items-center gap-3">
-            <div class="px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-[10px] font-tech text-white flex items-center gap-2">
-                <span class="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse"></span> R2 CONNECTED
-            </div>
+    <header class="flex justify-between items-center px-5 py-5 sticky top-0 bg-base/90 backdrop-blur-md z-40 border-b border-borderline/50">
+        <div class="font-bold text-lg tracking-tight">STREAM</div>
+        <div class="flex items-center gap-2 bg-success/10 text-success px-2.5 py-1.5 rounded-md text-[11px] font-semibold tracking-wide border border-success/20">
+            <span class="w-1.5 h-1.5 bg-success rounded-full animate-pulse"></span> R2 CONNECTED
         </div>
     </header>
 
-    <main class="pt-24 px-5 max-w-2xl mx-auto">
+    <main class="px-5 pt-6 pb-6 max-w-lg mx-auto">
         
         <section id="view-overview" class="view-section active">
-            <div class="mb-8">
-                <h1 class="text-3xl font-bold tracking-tight mb-1">Overview</h1>
-                <p class="text-sm" style="color: var(--text-secondary)">Infrastructure telemetry</p>
+            <div class="mb-6">
+                <h1 class="text-2xl font-bold tracking-tight mb-1">Dashboard</h1>
+                <p class="text-sm text-textMuted font-medium">System telemetry</p>
             </div>
 
             <div class="grid grid-cols-2 gap-4">
-                <div class="obsidian-card col-span-2 p-6">
-                    <div class="flex items-center justify-between mb-6">
-                        <span class="text-xs font-tech tracking-widest text-[#8A8F98]">NETWORK_STATUS</span>
-                        <i data-lucide="activity" class="w-4 h-4 text-[#00E5FF]"></i>
+                
+                <div class="saas-card clickable col-span-2 p-5 relative">
+                    <div class="flex justify-between items-start mb-6">
+                        <div class="text-[11px] font-semibold text-textMuted uppercase tracking-wider">Streaming Quality</div>
+                        <div class="waveform">
+                            <div class="wave-bar"></div><div class="wave-bar"></div>
+                            <div class="wave-bar"></div><div class="wave-bar"></div>
+                        </div>
                     </div>
-                    <div class="text-4xl font-tech font-medium tracking-tight mb-2 text-white">720p</div>
-                    <div class="text-sm" style="color: var(--text-secondary)">HLS Conversion Engine Active</div>
+                    <div class="flex items-baseline gap-3">
+                        <div class="text-5xl font-bold tracking-tighter">720p</div>
+                        <div class="text-sm text-success font-medium flex items-center gap-1">
+                            <i data-lucide="check-circle-2" class="w-4 h-4"></i> Active
+                        </div>
+                    </div>
                 </div>
 
-                <div class="obsidian-card col-span-1 p-5 flex flex-col justify-between aspect-square">
-                    <i data-lucide="video" class="w-5 h-5 text-white/50 mb-4"></i>
+                <div class="saas-card clickable col-span-1 p-5 flex flex-col justify-between min-h-[140px]">
+                    <i data-lucide="video" class="w-5 h-5 text-textMuted mb-4"></i>
                     <div>
-                        <div class="text-3xl font-tech text-white" id="stat-videos">--</div>
-                        <div class="text-[10px] uppercase font-tech tracking-widest mt-1" style="color: var(--text-secondary)">Assets</div>
+                        <div class="text-2xl font-bold tracking-tight mb-0.5" id="stat-videos">--</div>
+                        <div class="text-[11px] font-semibold text-textMuted uppercase tracking-wider">Total Assets</div>
                     </div>
                 </div>
 
-                <div class="obsidian-card col-span-1 p-5 flex flex-col justify-between aspect-square">
-                    <i data-lucide="server" class="w-5 h-5 text-white/50 mb-4"></i>
+                <div class="saas-card clickable col-span-1 p-5 flex flex-col justify-between min-h-[140px]">
+                    <i data-lucide="database" class="w-5 h-5 text-textMuted mb-4"></i>
                     <div>
-                        <div class="text-3xl font-tech text-white">R2</div>
-                        <div class="text-[10px] uppercase font-tech tracking-widest mt-1 text-emerald-400">Operational</div>
+                        <div class="text-2xl font-bold tracking-tight mb-0.5">R2</div>
+                        <div class="text-[11px] font-semibold text-success uppercase tracking-wider">Operational</div>
                     </div>
                 </div>
             </div>
@@ -184,100 +155,109 @@
 
         <section id="view-library" class="view-section">
             <div class="flex justify-between items-center mb-6">
-                <h1 class="text-3xl font-bold tracking-tight">Library</h1>
-                <button onclick="fetchLibrary()" class="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-white transition-transform active:rotate-180">
-                    <i data-lucide="rotate-cw" class="w-4 h-4"></i>
+                <div>
+                    <h1 class="text-2xl font-bold tracking-tight mb-1">Library</h1>
+                    <p class="text-sm text-textMuted font-medium">Manage R2 buckets</p>
+                </div>
+                <button onclick="fetchLibrary()" class="w-9 h-9 rounded-full bg-white/5 flex items-center justify-center text-textMain clickable transition-colors">
+                    <i data-lucide="refresh-cw" class="w-4 h-4"></i>
                 </button>
             </div>
             
-            <div class="obsidian-card p-2" id="library-container">
-                <div class="text-center p-8 text-[#8A8F98] font-tech text-xs">Fetching R2 bucket...</div>
+            <div class="flex flex-col gap-3" id="library-container">
+                <div class="text-center p-8 text-textMuted text-sm font-medium">Syncing data...</div>
             </div>
         </section>
 
         <section id="view-upload" class="view-section">
             <div class="mb-6">
-                <h1 class="text-3xl font-bold tracking-tight mb-1">Ingest</h1>
-                <p class="text-sm" style="color: var(--text-secondary)">Upload or remote fetch media</p>
+                <h1 class="text-2xl font-bold tracking-tight mb-1">Ingest Media</h1>
+                <p class="text-sm text-textMuted font-medium">Process and encode to HLS</p>
             </div>
             
-            <div class="obsidian-card p-5 mb-6">
-                <div class="flex p-1 bg-black/50 border border-white/5 rounded-xl mb-6">
-                    <button class="flex-1 py-2 text-sm font-medium rounded-lg bg-white/10 text-white shadow-sm" id="tab-file">Local File</button>
-                    <button class="flex-1 py-2 text-sm font-medium rounded-lg text-[#8A8F98]" id="tab-url">Remote URL</button>
+            <div class="saas-card p-5 mb-6">
+                <div class="flex p-1 bg-black/40 border border-borderline rounded-xl mb-6">
+                    <button class="flex-1 py-2 text-sm font-semibold rounded-lg bg-white/10 text-white shadow-sm transition-all" id="tab-file">Local File</button>
+                    <button class="flex-1 py-2 text-sm font-semibold rounded-lg text-textMuted transition-all" id="tab-url">Remote URL</button>
                 </div>
 
                 <div id="upload-file-module">
-                    <div class="border border-dashed border-white/20 rounded-2xl p-10 text-center transition-colors cursor-pointer hover:bg-white/5" onclick="document.getElementById('videoInput').click()">
-                        <div class="w-12 h-12 rounded-full bg-white/5 mx-auto flex items-center justify-center mb-4">
-                            <i data-lucide="upload" class="w-5 h-5 text-white"></i>
-                        </div>
-                        <p class="font-medium text-white mb-1">Tap to select media</p>
-                        <p class="text-[11px] font-tech text-[#8A8F98]">MP4, MKV, WEBM (Max 1GB)</p>
+                    <div class="border border-dashed border-borderline rounded-xl p-8 text-center clickable transition-colors hover:border-accent" onclick="document.getElementById('videoInput').click()">
+                        <i data-lucide="upload-cloud" class="w-6 h-6 text-textMuted mx-auto mb-3"></i>
+                        <p class="font-semibold text-sm mb-1">Select video file</p>
+                        <p class="text-[11px] text-textMuted">MP4, MKV, WEBM (Max 1GB)</p>
                     </div>
                     <input type="file" id="videoInput" accept="video/*" class="hidden">
                 </div>
 
                 <div id="upload-url-module" class="hidden">
-                    <input type="url" id="urlInput" class="cyber-input mb-4" placeholder="https://example.com/video.mp4">
-                    <button id="submitUrlBtn" class="primary-btn">
-                        <i data-lucide="link" class="w-4 h-4"></i> Process URL
+                    <label class="block text-[11px] font-semibold text-textMuted uppercase tracking-wider mb-2 ml-1">Source URL</label>
+                    <input type="url" id="urlInput" class="saas-input mb-4" placeholder="https://example.com/video.mp4">
+                    <button id="submitUrlBtn" class="saas-btn-primary clickable">
+                        Process URL <i data-lucide="arrow-right" class="w-4 h-4"></i>
                     </button>
                 </div>
             </div>
 
-            <div id="job-tracker" class="obsidian-card p-5 hidden">
+            <div id="job-tracker" class="saas-card p-5 hidden">
                 <div class="flex items-center justify-between mb-4">
-                    <div class="flex items-center gap-2">
-                        <i data-lucide="cpu" class="w-4 h-4 text-[#00E5FF]"></i>
-                        <span class="text-sm font-medium text-white">FFmpeg Engine</span>
+                    <div class="flex items-center gap-2 font-semibold text-sm">
+                        <i data-lucide="cpu" class="w-4 h-4 text-accent"></i> FFmpeg Engine
                     </div>
-                    <span class="text-[10px] font-tech text-amber-400 bg-amber-400/10 px-2 py-1 rounded" id="job-status">ENCODING</span>
+                    <span class="text-[10px] font-bold text-accent bg-accent/10 px-2 py-1 rounded-md tracking-wider uppercase" id="job-status">Encoding</span>
                 </div>
                 
-                <div class="neon-progress-bg mb-3">
-                    <div class="neon-progress-fill w-full" style="animation: pulseWidth 2s infinite ease-in-out;"></div>
+                <div class="w-full h-1.5 bg-black/50 border border-borderline rounded-full overflow-hidden mb-3">
+                    <div class="h-full bg-accent w-full" style="animation: indeterminate 1.5s infinite ease-in-out;"></div>
                 </div>
-                <div class="text-[10px] font-tech text-[#8A8F98] truncate" id="job-id">ID: initializing...</div>
+                <div class="text-[11px] text-textMuted truncate font-mono" id="job-id">ID: initializing...</div>
             </div>
         </section>
 
     </main>
 
-    <nav class="dynamic-dock">
-        <button class="dock-item active" onclick="switchView('overview', this)"><i data-lucide="home" class="w-5 h-5"></i></button>
-        <button class="dock-item" onclick="switchView('library', this); fetchLibrary();"><i data-lucide="folder" class="w-5 h-5"></i></button>
-        
-        <button class="dock-action" onclick="switchView('upload', null); deactivateDockItems();">
-            <i data-lucide="plus" class="w-5 h-5"></i>
+    <nav class="bottom-nav flex justify-around items-center px-6 py-3">
+        <button class="nav-item active clickable" onclick="switchView('overview', this)">
+            <i data-lucide="home" class="w-5 h-5 mb-1"></i>
+            <span class="text-[10px] font-semibold">Home</span>
+        </button>
+        <button class="nav-item clickable" onclick="switchView('library', this); fetchLibrary();">
+            <i data-lucide="folder" class="w-5 h-5 mb-1"></i>
+            <span class="text-[10px] font-semibold">Files</span>
         </button>
         
-        <button class="dock-item"><i data-lucide="bar-chart" class="w-5 h-5"></i></button>
-        <button class="dock-item"><i data-lucide="settings" class="w-5 h-5"></i></button>
+        <button class="fab-button clickable" onclick="switchView('upload', null); deactivateNavs();">
+            <i data-lucide="plus" class="w-6 h-6"></i>
+        </button>
+        
+        <button class="nav-item clickable">
+            <i data-lucide="bar-chart-2" class="w-5 h-5 mb-1"></i>
+            <span class="text-[10px] font-semibold">Data</span>
+        </button>
+        <button class="nav-item clickable">
+            <i data-lucide="settings" class="w-5 h-5 mb-1"></i>
+            <span class="text-[10px] font-semibold">Settings</span>
+        </button>
     </nav>
 
-    <div id="toast" class="fixed top-4 left-1/2 transform -translate-x-1/2 bg-white text-black px-4 py-2 rounded-full font-medium text-sm transition-all duration-300 opacity-0 translate-y-[-20px] pointer-events-none z-[100] shadow-lg">
-        Message
+    <div id="toast" class="fixed top-24 left-1/2 transform -translate-x-1/2 bg-white text-black px-4 py-2.5 rounded-full font-semibold text-[13px] shadow-lg transition-all duration-300 opacity-0 translate-y-[-10px] pointer-events-none z-[100] flex items-center gap-2">
+        <i data-lucide="info" class="w-4 h-4"></i> <span id="toast-msg">Message</span>
     </div>
 
     <style>
-        @keyframes pulseWidth { 0% { width: 0%; opacity: 1; } 100% { width: 100%; opacity: 0.2; } }
+        @keyframes indeterminate { 0% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }
     </style>
 
     <script>
         lucide.createIcons();
-        const API_BASE = window.location.origin; // Uses your live Railway URL automatically
+        const API_BASE = window.location.origin; // Dynamically uses your Railway URL
 
-        // --- UI Interactions ---
+        // --- Core UI Functions ---
         function showToast(msg) {
             const toast = document.getElementById('toast');
-            toast.textContent = msg;
-            toast.style.opacity = '1';
-            toast.style.transform = 'translate(-50%, 0)';
-            setTimeout(() => {
-                toast.style.opacity = '0';
-                toast.style.transform = 'translate(-50%, -20px)';
-            }, 3000);
+            document.getElementById('toast-msg').textContent = msg;
+            toast.style.opacity = '1'; toast.style.transform = 'translate(-50%, 0)';
+            setTimeout(() => { toast.style.opacity = '0'; toast.style.transform = 'translate(-50%, -10px)'; }, 3000);
         }
 
         function switchView(viewId, btn) {
@@ -285,25 +265,25 @@
             document.getElementById('view-' + viewId).classList.add('active');
             
             if(btn) {
-                document.querySelectorAll('.dock-item').forEach(el => el.classList.remove('active'));
+                deactivateNavs();
                 btn.classList.add('active');
             }
         }
 
-        function deactivateDockItems() {
-            document.querySelectorAll('.dock-item').forEach(el => el.classList.remove('active'));
+        function deactivateNavs() {
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
         }
 
-        // Segmented Control Tabs
+        // --- Upload Tabs ---
         document.getElementById('tab-file').onclick = () => {
-            document.getElementById('tab-file').className = "flex-1 py-2 text-sm font-medium rounded-lg bg-white/10 text-white shadow-sm";
-            document.getElementById('tab-url').className = "flex-1 py-2 text-sm font-medium rounded-lg text-[#8A8F98]";
+            document.getElementById('tab-file').className = "flex-1 py-2 text-sm font-semibold rounded-lg bg-white/10 text-white shadow-sm transition-all";
+            document.getElementById('tab-url').className = "flex-1 py-2 text-sm font-semibold rounded-lg text-textMuted transition-all";
             document.getElementById('upload-file-module').classList.remove('hidden');
             document.getElementById('upload-url-module').classList.add('hidden');
         };
         document.getElementById('tab-url').onclick = () => {
-            document.getElementById('tab-url').className = "flex-1 py-2 text-sm font-medium rounded-lg bg-white/10 text-white shadow-sm";
-            document.getElementById('tab-file').className = "flex-1 py-2 text-sm font-medium rounded-lg text-[#8A8F98]";
+            document.getElementById('tab-url').className = "flex-1 py-2 text-sm font-semibold rounded-lg bg-white/10 text-white shadow-sm transition-all";
+            document.getElementById('tab-file').className = "flex-1 py-2 text-sm font-semibold rounded-lg text-textMuted transition-all";
             document.getElementById('upload-url-module').classList.remove('hidden');
             document.getElementById('upload-file-module').classList.add('hidden');
         };
@@ -311,7 +291,7 @@
         // --- Library Logic ---
         async function fetchLibrary() {
             const container = document.getElementById('library-container');
-            container.innerHTML = '<div class="text-center p-8 text-[#8A8F98] font-tech text-xs"><i data-lucide="loader" class="animate-spin inline mr-2"></i> Syncing...</div>';
+            container.innerHTML = '<div class="text-center p-6 text-textMuted text-sm font-medium"><i data-lucide="loader" class="animate-spin inline w-4 h-4 mr-2"></i> Syncing...</div>';
             lucide.createIcons();
 
             try {
@@ -321,30 +301,33 @@
                 document.getElementById('stat-videos').textContent = data.videos ? data.videos.length : 0;
                 
                 if(!data.videos || data.videos.length === 0) {
-                    container.innerHTML = '<div class="text-center p-8 text-[#8A8F98] font-tech text-xs">0 Assets Found</div>';
+                    container.innerHTML = '<div class="text-center p-8 text-textMuted text-sm font-medium">No assets found in R2.</div>';
                     return;
                 }
 
-                // Render List
                 container.innerHTML = data.videos.map(v => `
-                    <div class="asset-row" id="vid-${v.id}">
-                        <div class="asset-icon"><i data-lucide="film" class="w-5 h-5"></i></div>
-                        <div class="flex-1 min-w-0">
-                            <h4 class="text-sm font-medium truncate text-white">${v.id.substring(0, 18)}...</h4>
-                            <div class="text-[10px] font-tech text-[#8A8F98] mt-1">master.m3u8</div>
+                    <div class="saas-card clickable p-4 flex items-center gap-4" id="vid-${v.id}">
+                        <div class="w-10 h-10 rounded-lg bg-accent/10 text-accent flex items-center justify-center shrink-0">
+                            <i data-lucide="film" class="w-5 h-5"></i>
                         </div>
-                        <button onclick="copyUrl('${v.url}')" class="w-10 h-10 rounded-full flex items-center justify-center text-[#8A8F98] active:bg-white/10 active:text-white transition-colors"><i data-lucide="copy" class="w-4 h-4"></i></button>
-                        <button onclick="deleteVideo('${v.id}')" class="w-10 h-10 rounded-full flex items-center justify-center text-rose-500/70 active:bg-rose-500/20 active:text-rose-500 transition-colors"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                        <div class="flex-1 min-w-0">
+                            <h4 class="text-[13px] font-semibold truncate text-white">${v.id.substring(0, 18)}...</h4>
+                            <div class="text-[11px] font-medium text-textMuted mt-0.5">master.m3u8</div>
+                        </div>
+                        <div class="flex gap-2">
+                            <button onclick="copyUrl('${v.url}')" class="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-textMuted hover:text-white transition-colors"><i data-lucide="copy" class="w-3.5 h-3.5"></i></button>
+                            <button onclick="deleteVideo('${v.id}')" class="w-8 h-8 rounded-full bg-error/10 flex items-center justify-center text-error hover:bg-error hover:text-white transition-colors"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>
+                        </div>
                     </div>
                 `).join('');
                 lucide.createIcons();
             } catch (err) {
-                container.innerHTML = `<div class="text-rose-500 text-xs font-tech p-6 text-center">API Offline. Check Railway logs.</div>`;
+                container.innerHTML = `<div class="text-error text-sm font-medium p-6 text-center">API Offline.</div>`;
             }
         }
 
         async function deleteVideo(id) {
-            if(!confirm("Permenantly delete this asset from R2?")) return;
+            if(!confirm("Permanently delete this asset?")) return;
             try {
                 await fetch(`${API_BASE}/video/${id}`, { method: 'DELETE' });
                 document.getElementById(`vid-${id}`).remove();
@@ -367,7 +350,7 @@
             tracker.classList.remove('hidden');
             jobIdText.textContent = `ID: ${jobId}`;
             statusText.textContent = "ENCODING";
-            statusText.className = "text-[10px] font-tech text-amber-400 bg-amber-400/10 px-2 py-1 rounded animate-pulse";
+            statusText.className = "text-[10px] font-bold text-accent bg-accent/10 px-2 py-1 rounded-md tracking-wider uppercase";
 
             const interval = setInterval(async () => {
                 try {
@@ -377,22 +360,20 @@
                     if (job.status === 'completed') {
                         clearInterval(interval);
                         statusText.textContent = "SUCCESS";
-                        statusText.className = "text-[10px] font-tech text-emerald-400 bg-emerald-400/10 px-2 py-1 rounded";
-                        showToast("Media successfully processed!");
+                        statusText.className = "text-[10px] font-bold text-success bg-success/10 px-2 py-1 rounded-md tracking-wider uppercase";
+                        showToast("Encoding completed successfully");
                         setTimeout(() => { 
                             tracker.classList.add('hidden'); 
                             fetchLibrary(); 
-                            switchView('library', document.querySelectorAll('.dock-item')[1]); 
-                        }, 1500);
+                            switchView('library', document.querySelectorAll('.nav-item')[1]); 
+                        }, 2000);
                     } else if (job.status === 'failed') {
                         clearInterval(interval);
                         statusText.textContent = "FAILED";
-                        statusText.className = "text-[10px] font-tech text-rose-500 bg-rose-500/10 px-2 py-1 rounded";
+                        statusText.className = "text-[10px] font-bold text-error bg-error/10 px-2 py-1 rounded-md tracking-wider uppercase";
                         showToast("FFmpeg Encoding Failed");
                     }
-                } catch (e) {
-                    clearInterval(interval);
-                }
+                } catch (e) { clearInterval(interval); }
             }, 2000);
         }
 
@@ -407,7 +388,7 @@
             try {
                 tracker.classList.remove('hidden');
                 statusText.textContent = "UPLOADING";
-                showToast("Sending to server...");
+                showToast("Transmitting payload...");
                 
                 const res = await fetch(`${API_BASE}/upload`, { method: 'POST', body: formData });
                 const data = await res.json();
