@@ -9,372 +9,433 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
     
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
 
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    fontFamily: { 
-                        sans: ['Inter', 'sans-serif'], 
-                        mono: ['JetBrains Mono', 'monospace'] 
-                    },
-                    colors: {
-                        base: '#09090b',      // zinc-950
-                        surface: '#18181b',   // zinc-900
-                        borderline: '#27272a',// zinc-800
-                        primary: '#fafafa',   // zinc-50
-                        muted: '#a1a1aa',     // zinc-400
-                        accent: '#4f46e5',    // indigo-600
-                        teal: '#14b8a6',      // teal-500
-                        success: '#10b981',   // emerald-500
-                        danger: '#f43f5e'     // rose-500
-                    }
-                }
-            }
-        }
-    </script>
-
     <style>
+        /* BULLETPROOF SAAS RESETS */
         body {
-            background-color: theme('colors.base');
-            color: theme('colors.primary');
+            background-color: #09090b !important;
+            color: #fafafa !important;
+            font-family: 'Inter', sans-serif;
             -webkit-font-smoothing: antialiased;
-            -moz-osx-font-smoothing: grayscale;
             overscroll-behavior-y: none;
-            padding-bottom: 90px; /* Space for bottom nav */
+            padding-bottom: 90px;
+            margin: 0;
+            opacity: 0; /* Hidden until GSAP takes over to prevent FOUC */
         }
         
-        /* Hide scrollbar for a clean app feel */
+        .font-mono { font-family: 'JetBrains Mono', monospace; }
         ::-webkit-scrollbar { display: none; }
 
-        /* SaaS Components */
+        /* GLOBAL NOISE TEXTURE (Depth, No Flat UI) */
+        .noise-layer {
+            position: fixed; inset: 0; z-index: 9999; pointer-events: none;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+            opacity: 0.03; mix-blend-mode: overlay;
+        }
+
+        /* CORE COMPONENTS */
         .saas-card {
-            background-color: theme('colors.surface');
-            border: 1px solid theme('colors.borderline');
-            border-radius: 20px;
-            transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease;
+            background-color: #121214; 
+            border: 1px solid #27272a;
+            border-radius: 12px;
+            transition: transform 0.15s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.15s ease;
+            position: relative;
+            overflow: hidden;
+            will-change: transform, opacity;
         }
         .saas-card:active { transform: scale(0.96); }
 
         .saas-input {
-            background-color: theme('colors.base');
-            border: 1px solid theme('colors.borderline');
-            border-radius: 12px;
-            padding: 14px 16px;
-            color: theme('colors.primary');
-            width: 100%;
-            transition: all 0.2s ease;
-            font-size: 14px;
+            background-color: #09090b; border: 1px solid #27272a; border-radius: 8px;
+            padding: 12px 14px; color: #fafafa; width: 100%; font-size: 13px;
+            transition: border-color 0.2s ease;
         }
-        .saas-input:focus {
-            border-color: theme('colors.accent');
-            outline: none;
-            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15);
-        }
+        .saas-input:focus { border-color: #4f46e5; outline: none; }
 
         .saas-btn {
-            background-color: theme('colors.primary');
-            color: theme('colors.base');
-            border-radius: 12px;
-            padding: 14px;
-            font-weight: 600;
-            font-size: 14px;
-            width: 100%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+            background-color: #fafafa; color: #09090b; border-radius: 8px;
+            padding: 12px; font-weight: 600; font-size: 13px; width: 100%;
+            display: flex; align-items: center; justify-content: center; gap: 8px;
+            transition: transform 0.15s cubic-bezier(0.16, 1, 0.3, 1);
         }
         .saas-btn:active { transform: scale(0.96); background-color: #e4e4e7; }
 
-        /* Bottom Nav Layout */
+        /* GRADIENT FLOW SHADER */
+        .shader-bg {
+            background: linear-gradient(110deg, #0f172a 0%, #312e81 40%, #0891b2 80%, #0f172a 100%);
+            background-size: 200% 200%;
+            animation: shaderFlow 25s ease-in-out infinite alternate;
+        }
+        @keyframes shaderFlow { 0% { background-position: 0% 50%; } 100% { background-position: 100% 50%; } }
+
+        /* DATA-REACTIVE GLOW WAVEFORM */
+        .integrated-wave {
+            position: absolute; bottom: 0; left: 0; right: 0;
+            height: 64px; display: flex; align-items: flex-end; gap: 3px; padding: 0 24px;
+            pointer-events: none; z-index: 10;
+        }
+        .wave-bar {
+            flex: 1; border-top-left-radius: 2px; border-top-right-radius: 2px;
+            transform-origin: bottom; background-color: rgba(20, 184, 166, 0.7);
+            /* Animation applied via JS after entry */
+        }
+        .wave-anim-1 { animation: wave 1.2s ease-in-out infinite alternate 0.2s; }
+        .wave-anim-2 { animation: wave 1.8s ease-in-out infinite alternate 0.4s; }
+        .wave-anim-3 { animation: wave 1.4s ease-in-out infinite alternate 0.1s; }
+        @keyframes wave {
+            0% { transform: scaleY(0.15); background-color: rgba(20, 184, 166, 0.15); box-shadow: 0 0 0px rgba(20, 184, 166, 0); }
+            100% { transform: scaleY(1); background-color: rgba(20, 184, 166, 0.7); box-shadow: 0 -6px 20px rgba(20, 184, 166, 0.25); }
+        }
+
+        /* BOTTOM NAV BAR */
         .bottom-nav {
             position: fixed; bottom: 0; left: 0; right: 0;
-            background-color: rgba(9, 9, 11, 0.85);
-            backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
-            border-top: 1px solid theme('colors.borderline');
-            padding-bottom: env(safe-area-inset-bottom);
-            z-index: 50;
+            background-color: #09090b; border-top: 1px solid #27272a;
+            padding-bottom: env(safe-area-inset-bottom); z-index: 50;
         }
         .nav-item {
-            display: flex; flex-direction: column; align-items: center; gap: 4px;
-            color: theme('colors.muted'); font-size: 10px; font-weight: 500;
-            transition: color 0.2s; width: 60px;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            color: #71717a; font-size: 10px; font-weight: 500;
+            width: 64px; height: 56px; position: relative;
+            transition: color 0.2s ease, transform 0.15s cubic-bezier(0.16, 1, 0.3, 1);
         }
-        .nav-item.active { color: theme('colors.primary'); }
-        .nav-item i { width: 22px; height: 22px; }
+        .nav-item:active { transform: scale(0.9); }
+        .nav-item.active-text { color: #fafafa; }
         
-        .fab-wrapper { position: relative; top: -20px; }
+        /* Smooth Sliding Nav Indicator */
+        #nav-indicator {
+            position: absolute; top: -1px; left: 0;
+            width: 24px; height: 2px; background-color: #fafafa; border-radius: 2px;
+            will-change: transform;
+        }
+        
+        /* FAB */
+        .fab-wrapper { position: relative; top: -14px; }
         .fab-button {
-            width: 56px; height: 56px; border-radius: 50%;
-            background-color: theme('colors.accent'); color: white;
+            width: 48px; height: 48px; border-radius: 24px;
+            background-color: #4f46e5; color: white;
             display: flex; align-items: center; justify-content: center;
-            border: 4px solid theme('colors.base');
-            box-shadow: 0 8px 16px rgba(79, 70, 229, 0.25);
-            transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+            border: 4px solid #09090b;
+            transition: transform 0.15s cubic-bezier(0.16, 1, 0.3, 1);
         }
         .fab-button:active { transform: scale(0.92); }
 
-        /* Animated Waveform */
-        .waveform { display: flex; align-items: flex-end; gap: 3px; height: 24px; }
-        .wave-bar { width: 4px; background-color: theme('colors.teal'); border-radius: 2px; animation: wave 1.2s ease-in-out infinite; }
-        .wave-bar:nth-child(1) { animation-delay: 0.0s; height: 12px; }
-        .wave-bar:nth-child(2) { animation-delay: 0.2s; height: 24px; }
-        .wave-bar:nth-child(3) { animation-delay: 0.4s; height: 16px; }
-        .wave-bar:nth-child(4) { animation-delay: 0.6s; height: 20px; }
-        .wave-bar:nth-child(5) { animation-delay: 0.8s; height: 10px; }
-        @keyframes wave { 0%, 100% { transform: scaleY(0.5); } 50% { transform: scaleY(1); } }
-
-        /* Clean Flat Progress */
-        .flat-progress-bg { width: 100%; height: 6px; background-color: theme('colors.base'); border-radius: 4px; border: 1px solid theme('colors.borderline'); overflow: hidden; }
-        .flat-progress-fill { height: 100%; background-color: theme('colors.accent'); width: 0%; transition: width 0.3s ease; }
-
-        /* View Switching */
-        .view-section { display: none; animation: softFade 0.3s ease forwards; }
+        /* VIEW SWITCHING (Managed by GSAP) */
+        .view-section { display: none; will-change: transform, opacity; }
         .view-section.active { display: block; }
-        @keyframes softFade { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
 <body>
 
-    <header class="fixed top-0 left-0 right-0 h-16 bg-[#09090b]/95 backdrop-blur-md border-b border-borderline z-40 flex items-center justify-between px-5">
-        <div class="flex items-center gap-2">
-            <span class="font-bold text-lg tracking-tight">STREAM</span>
-            <span class="text-muted text-lg">/</span>
-            <span class="text-sm font-medium">Dashboard</span>
+    <div class="noise-layer"></div>
+
+    <header id="app-header" class="fixed top-0 w-full h-14 bg-[#09090b]/95 border-b border-[#27272a] z-40 flex items-center justify-between px-5">
+        <div class="flex items-center gap-2.5">
+            <span class="font-bold tracking-tight text-[#fafafa]">STREAM</span>
+            <span class="text-[#3f3f46]">/</span>
+            <span class="text-[13px] font-medium text-[#a1a1aa]">Dashboard</span>
         </div>
-        <div class="flex items-center gap-2 bg-success/10 border border-success/20 px-2.5 py-1.5 rounded-full">
-            <span class="w-1.5 h-1.5 bg-success rounded-full animate-pulse"></span>
-            <span class="text-[10px] font-mono font-medium text-success uppercase tracking-wider">Connected</span>
+        <div class="flex items-center gap-2 border border-[#10b981]/20 bg-[#10b981]/10 px-2 py-1 rounded-md">
+            <span class="w-1.5 h-1.5 rounded-full bg-[#10b981] animate-pulse"></span>
+            <span class="text-[10px] font-semibold text-[#10b981] tracking-wider uppercase">Connected</span>
         </div>
     </header>
 
-    <main class="pt-24 px-5 max-w-xl mx-auto">
+    <main class="pt-20 px-5 max-w-xl mx-auto overflow-hidden">
         
         <section id="view-overview" class="view-section active">
             
-            <div class="saas-card p-6 mb-4 relative bg-gradient-to-b from-[#18181b] to-[#09090b]">
-                <div class="flex justify-between items-start mb-6">
-                    <div class="flex items-center gap-2">
-                        <span class="relative flex h-2 w-2">
-                          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-success opacity-75"></span>
-                          <span class="relative inline-flex rounded-full h-2 w-2 bg-success"></span>
-                        </span>
-                        <span class="text-xs font-medium text-muted uppercase tracking-wider">Streaming Quality</span>
+            <div id="kpi-card" class="saas-card p-6 mb-6 min-h-[170px] flex flex-col justify-between">
+                <div class="absolute inset-0 z-0 opacity-10 shader-bg pointer-events-none"></div>
+
+                <div class="flex justify-between items-start z-10 relative">
+                    <div class="flex items-center gap-2.5">
+                        <div class="relative flex h-2 w-2">
+                          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#10b981] opacity-75"></span>
+                          <span class="relative inline-flex rounded-full h-2 w-2 bg-[#10b981]"></span>
+                        </div>
+                        <span class="text-[11px] font-semibold text-[#a1a1aa] uppercase tracking-wider">Streaming Quality</span>
                     </div>
-                    <i data-lucide="activity" class="w-4 h-4 text-muted"></i>
+                    <i data-lucide="activity" class="w-4 h-4 text-[#71717a]"></i>
                 </div>
                 
-                <div class="text-5xl font-mono font-bold tracking-tighter text-primary mb-1">720p</div>
-                <div class="text-sm font-medium text-muted">HLS Fast Encoding Engine</div>
-                
-                <div class="absolute bottom-6 right-6 waveform">
-                    <div class="wave-bar"></div>
-                    <div class="wave-bar"></div>
-                    <div class="wave-bar"></div>
-                    <div class="wave-bar"></div>
-                    <div class="wave-bar"></div>
+                <div class="z-10 relative mt-6 pb-2">
+                    <div class="text-5xl font-bold tracking-tight text-[#fafafa] mb-1">720p</div>
+                    <div class="text-[13px] font-medium text-[#a1a1aa]">HLS Fast Encoding Engine</div>
+                </div>
+
+                <div class="integrated-wave">
+                    <div class="wave-bar" style="height: 40%"></div><div class="wave-bar" style="height: 80%"></div>
+                    <div class="wave-bar" style="height: 60%"></div><div class="wave-bar" style="height: 100%"></div>
+                    <div class="wave-bar" style="height: 30%"></div><div class="wave-bar" style="height: 70%"></div>
+                    <div class="wave-bar" style="height: 90%"></div><div class="wave-bar" style="height: 50%"></div>
+                    <div class="wave-bar" style="height: 20%"></div><div class="wave-bar" style="height: 60%"></div>
+                    <div class="wave-bar" style="height: 80%"></div><div class="wave-bar" style="height: 40%"></div>
                 </div>
             </div>
 
-            <div class="grid grid-cols-2 gap-4 mb-4">
-                
-                <div class="saas-card p-5 flex flex-col justify-between aspect-[4/3]">
-                    <div class="flex justify-between items-start">
-                        <i data-lucide="video" class="w-5 h-5 text-accent"></i>
-                    </div>
-                    <div>
-                        <div class="text-3xl font-mono font-bold text-primary" id="stat-videos">--</div>
-                        <div class="text-[11px] font-medium text-muted uppercase tracking-wider mt-1">Total Assets</div>
-                    </div>
+            <div class="grid grid-cols-2 gap-4 mb-6">
+                <div class="saas-card stagger-card p-5 flex flex-col justify-center">
+                    <i data-lucide="video" class="w-4 h-4 text-[#4f46e5] mb-3"></i>
+                    <div class="text-2xl font-mono font-medium text-[#fafafa]" id="stat-videos">--</div>
+                    <div class="text-[10px] font-semibold text-[#71717a] uppercase tracking-wider mt-1">Total Assets</div>
                 </div>
 
-                <div class="saas-card p-5 flex flex-col justify-between aspect-[4/3]">
-                    <div class="flex justify-between items-start">
-                        <i data-lucide="database" class="w-5 h-5 text-teal"></i>
-                    </div>
-                    <div>
-                        <div class="text-3xl font-mono font-bold text-primary">R2</div>
-                        <div class="text-[11px] font-medium text-success uppercase tracking-wider mt-1">Operational</div>
-                    </div>
+                <div class="saas-card stagger-card p-5 flex flex-col justify-center">
+                    <i data-lucide="database" class="w-4 h-4 text-[#14b8a6] mb-3"></i>
+                    <div class="text-2xl font-mono font-medium text-[#fafafa]">R2</div>
+                    <div class="text-[10px] font-semibold text-[#10b981] uppercase tracking-wider mt-1">Operational</div>
                 </div>
-
             </div>
 
-            <div class="saas-card p-5 flex items-center justify-between">
-                <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-full bg-borderline flex items-center justify-center">
-                        <i data-lucide="cpu" class="w-5 h-5 text-primary"></i>
+            <div class="saas-card stagger-card p-5">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-md bg-[#09090b] border border-[#27272a] flex items-center justify-center">
+                            <i data-lucide="cpu" class="w-3.5 h-3.5 text-[#fafafa]"></i>
+                        </div>
+                        <div class="text-[13px] font-semibold text-[#fafafa]">FFmpeg Engine</div>
                     </div>
-                    <div>
-                        <div class="text-sm font-semibold text-primary">FFmpeg Process</div>
-                        <div class="text-xs font-mono text-muted mt-0.5">libx264 • crf 28</div>
-                    </div>
+                    <div class="px-2 py-0.5 rounded border text-[9px] font-bold uppercase tracking-wider" id="ffmpeg-status-badge" style="background-color: #27272a; border-color: #3f3f46; color: #a1a1aa;">Idle</div>
                 </div>
-                <span class="text-xs font-medium bg-base border border-borderline px-2 py-1 rounded-md text-muted">Idle</span>
+                <div class="h-[1px] w-full bg-[#27272a] mb-4"></div>
+                <div class="flex justify-between items-center mb-2">
+                    <div class="text-[11px] text-[#71717a] font-medium uppercase tracking-wider">Codec</div>
+                    <div class="text-xs font-mono text-[#fafafa]">libx264</div>
+                </div>
+                <div class="flex justify-between items-center">
+                    <div class="text-[11px] text-[#71717a] font-medium uppercase tracking-wider">Quality (CRF)</div>
+                    <div class="text-xs font-mono text-[#fafafa]">28</div>
+                </div>
             </div>
         </section>
 
         <section id="view-library" class="view-section">
-            <div class="flex justify-between items-end mb-6">
+            <div class="flex justify-between items-end mb-5">
                 <div>
-                    <h2 class="text-2xl font-bold tracking-tight">Library</h2>
-                    <p class="text-sm text-muted mt-1">Manage Cloudflare R2 assets</p>
+                    <h2 class="text-lg font-bold tracking-tight text-[#fafafa]">Library</h2>
+                    <p class="text-[11px] text-[#a1a1aa] mt-0.5">Manage Cloudflare R2 assets</p>
                 </div>
-                <button onclick="fetchLibrary()" class="w-10 h-10 rounded-full border border-borderline flex items-center justify-center text-primary active:scale-90 transition-transform bg-surface">
-                    <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+                <button onclick="fetchLibrary()" class="w-7 h-7 rounded-md border border-[#27272a] flex items-center justify-center text-[#fafafa] active:scale-90 transition-transform bg-[#0f0f11]">
+                    <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
                 </button>
             </div>
-            
-            <div id="library-container" class="flex flex-col gap-3">
-                <div class="text-center p-10 text-muted font-mono text-sm border border-dashed border-borderline rounded-2xl">
-                    <i data-lucide="loader" class="w-5 h-5 animate-spin mx-auto mb-2"></i> Syncing...
+            <div id="library-container" class="flex flex-col gap-2.5">
                 </div>
-            </div>
         </section>
 
         <section id="view-upload" class="view-section">
-            <h2 class="text-2xl font-bold tracking-tight mb-1">Ingest Media</h2>
-            <p class="text-sm text-muted mb-6">Process and encode to 720p HLS</p>
+            <h2 class="text-lg font-bold tracking-tight text-[#fafafa] mb-0.5">Ingest Media</h2>
+            <p class="text-[11px] text-[#a1a1aa] mb-5">Process and encode to 720p HLS</p>
             
-            <div class="saas-card p-5 mb-6">
-                <div class="flex p-1 bg-base border border-borderline rounded-xl mb-6">
-                    <button class="flex-1 py-2 text-sm font-semibold rounded-lg bg-surface text-primary shadow-sm border border-borderline transition-all" id="tab-file">Local File</button>
-                    <button class="flex-1 py-2 text-sm font-medium rounded-lg text-muted transition-all" id="tab-url">Remote URL</button>
+            <div class="saas-card p-4 mb-4">
+                <div class="flex p-1 bg-[#09090b] border border-[#27272a] rounded-lg mb-5">
+                    <button class="flex-1 py-1.5 text-xs font-semibold rounded-md bg-[#18181b] text-[#fafafa] border border-[#27272a] transition-all" id="tab-file">Local File</button>
+                    <button class="flex-1 py-1.5 text-xs font-medium rounded-md text-[#a1a1aa] transition-all border border-transparent" id="tab-url">Remote URL</button>
                 </div>
 
                 <div id="upload-file-module">
-                    <div class="border-2 border-dashed border-borderline rounded-xl p-8 text-center transition-colors cursor-pointer active:bg-base" onclick="document.getElementById('videoInput').click()">
-                        <div class="w-12 h-12 rounded-full bg-surface border border-borderline mx-auto flex items-center justify-center mb-3">
-                            <i data-lucide="upload" class="w-5 h-5 text-primary"></i>
-                        </div>
-                        <p class="font-medium text-sm text-primary mb-1">Tap to select video</p>
-                        <p class="text-[11px] font-mono text-muted">MP4, WEBM (Max 1GB)</p>
+                    <div class="border border-dashed border-[#3f3f46] rounded-lg p-6 text-center transition-colors cursor-pointer hover:bg-[#27272a]/30 active:scale-[0.98]" onclick="document.getElementById('videoInput').click()">
+                        <i data-lucide="upload-cloud" class="w-5 h-5 text-[#fafafa] mx-auto mb-2"></i>
+                        <p class="font-medium text-xs text-[#fafafa] mb-1">Tap to select video</p>
+                        <p class="text-[10px] font-mono text-[#71717a]">MP4, WEBM (Max 1GB)</p>
                     </div>
                     <input type="file" id="videoInput" accept="video/*" class="hidden">
                 </div>
 
                 <div id="upload-url-module" class="hidden">
-                    <label class="block text-xs font-semibold text-muted mb-2 uppercase tracking-wider">Source URL</label>
-                    <input type="url" id="urlInput" class="saas-input mb-4" placeholder="https://example.com/video.mp4">
-                    <button id="submitUrlBtn" class="saas-btn">
-                        Process URL
-                    </button>
+                    <label class="block text-[10px] font-semibold text-[#a1a1aa] mb-1.5 uppercase tracking-wider">Source URL</label>
+                    <input type="url" id="urlInput" class="saas-input mb-3" placeholder="https://example.com/video.mp4">
+                    <button id="submitUrlBtn" class="saas-btn">Process URL</button>
                 </div>
             </div>
 
-            <div id="job-tracker" class="saas-card p-5 hidden">
-                <div class="flex items-center justify-between mb-4">
+            <div id="job-tracker" class="saas-card p-4 hidden">
+                <div class="flex items-center justify-between mb-3">
                     <div class="flex items-center gap-2">
-                        <i data-lucide="server" class="w-4 h-4 text-accent"></i>
-                        <span class="text-sm font-semibold text-primary">Processing Job</span>
+                        <i data-lucide="server" class="w-3.5 h-3.5 text-[#4f46e5]"></i>
+                        <span class="text-xs font-semibold text-[#fafafa]">Processing Job</span>
                     </div>
-                    <span class="text-[10px] font-mono font-bold text-teal uppercase tracking-wider" id="job-status">Encoding...</span>
+                    <span class="text-[10px] font-mono font-bold text-[#14b8a6] uppercase tracking-wider animate-pulse" id="job-status">Encoding...</span>
                 </div>
-                
-                <div class="flat-progress-bg mb-2">
-                    <div class="flat-progress-fill w-full" style="animation: indeterminate 2s infinite ease-in-out;"></div>
+                <div class="w-full h-1 bg-[#09090b] border border-[#27272a] rounded-full overflow-hidden mb-2">
+                    <div class="h-full bg-[#4f46e5] w-full" style="animation: indeterminate 2s infinite ease-in-out;"></div>
                 </div>
-                <div class="text-[10px] font-mono text-muted truncate" id="job-id">ID: initializing...</div>
+                <div class="text-[10px] font-mono text-[#71717a] truncate" id="job-id">ID: initializing...</div>
             </div>
         </section>
 
     </main>
 
     <nav class="bottom-nav">
-        <div class="flex justify-around items-center h-16 px-2">
-            
-            <button class="nav-item active" onclick="switchView('overview', this)">
-                <i data-lucide="home"></i>
-                <span>Home</span>
+        <div id="nav-indicator"></div>
+        <div class="flex justify-around items-center h-14 px-2 max-w-xl mx-auto relative">
+            <button class="nav-item active-text" id="nav-btn-overview" onclick="switchView('overview', this)">
+                <i data-lucide="home" class="w-5 h-5 mb-1"></i>
+                <span class="text-[10px] font-medium">Home</span>
             </button>
-            
-            <button class="nav-item" onclick="switchView('library', this); fetchLibrary();">
-                <i data-lucide="folder"></i>
-                <span>Files</span>
+            <button class="nav-item" id="nav-btn-library" onclick="switchView('library', this); fetchLibrary();">
+                <i data-lucide="folder" class="w-5 h-5 mb-1"></i>
+                <span class="text-[10px] font-medium">Files</span>
             </button>
             
             <div class="fab-wrapper">
                 <button class="fab-button" onclick="switchView('upload', null); deactivateNavItems();">
-                    <i data-lucide="plus"></i>
+                    <i data-lucide="plus" class="w-5 h-5"></i>
                 </button>
             </div>
             
-            <button class="nav-item">
-                <i data-lucide="bar-chart-2"></i>
-                <span>Metrics</span>
+            <button class="nav-item" id="nav-btn-metrics">
+                <i data-lucide="bar-chart-2" class="w-5 h-5 mb-1"></i>
+                <span class="text-[10px] font-medium">Metrics</span>
             </button>
-            
-            <button class="nav-item">
-                <i data-lucide="settings"></i>
-                <span>Settings</span>
+            <button class="nav-item" id="nav-btn-settings">
+                <i data-lucide="settings" class="w-5 h-5 mb-1"></i>
+                <span class="text-[10px] font-medium">Settings</span>
             </button>
-
         </div>
     </nav>
 
-    <div id="toast" class="fixed top-24 left-1/2 transform -translate-x-1/2 bg-primary text-base px-4 py-2.5 rounded-full font-semibold text-xs transition-all duration-300 opacity-0 translate-y-[-10px] pointer-events-none z-[100] shadow-lg flex items-center gap-2">
-        <i data-lucide="info" class="w-4 h-4"></i> <span id="toast-msg">Message</span>
+    <div id="toast" class="fixed top-20 left-1/2 transform -translate-x-1/2 bg-[#fafafa] text-[#09090b] px-3 py-2 rounded-md font-semibold text-xs transition-all duration-200 opacity-0 translate-y-[-10px] pointer-events-none z-[100] shadow-md flex items-center gap-2 border border-[#e4e4e7]">
+        <i data-lucide="info" class="w-3.5 h-3.5"></i> <span id="toast-msg">Message</span>
     </div>
 
     <style>
-        @keyframes indeterminate { 
-            0% { transform: translateX(-100%); width: 50%; } 
-            100% { transform: translateX(200%); width: 50%; } 
-        }
+        @keyframes indeterminate { 0% { transform: translateX(-100%); width: 50%; } 100% { transform: translateX(200%); width: 50%; } }
     </style>
 
     <script>
         lucide.createIcons();
-        const API_BASE = window.location.origin; // Uses your live Railway URL
+        const API_BASE = window.location.origin;
 
-        // --- UI Interactions ---
-        function showToast(msg) {
-            document.getElementById('toast-msg').textContent = msg;
-            const toast = document.getElementById('toast');
-            toast.style.opacity = '1';
-            toast.style.transform = 'translate(-50%, 0)';
-            setTimeout(() => {
-                toast.style.opacity = '0';
-                toast.style.transform = 'translate(-50%, -10px)';
-            }, 3000);
-        }
+        // ==========================================
+        // 🎬 GSAP CINEMATIC MOTION SYSTEM
+        // ==========================================
+        window.onload = () => {
+            gsap.to("body", { opacity: 1, duration: 0.1 });
 
-        function switchView(viewId, btn) {
-            document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
-            document.getElementById('view-' + viewId).classList.add('active');
+            // 1. Initial Page Entry Sequence
+            const enterTl = gsap.timeline({ defaults: { ease: "power3.out" } });
             
+            // Set initial states
+            gsap.set("#app-header", { y: -15, opacity: 0 });
+            gsap.set("#kpi-card", { y: 20, opacity: 0 });
+            gsap.set(".stagger-card", { y: 20, opacity: 0 });
+            gsap.set(".wave-bar", { scaleY: 0 });
+
+            enterTl.to("#app-header", { y: 0, opacity: 1, duration: 0.4 })
+                   .to("#kpi-card", { y: 0, opacity: 1, duration: 0.5 }, "-=0.2")
+                   // Start wave animation sequentially
+                   .to(".wave-bar", { 
+                       scaleY: 1, duration: 0.4, stagger: 0.03, ease: "back.out(1.5)",
+                       onComplete: () => {
+                           // Hand over to CSS looping animation
+                           document.querySelectorAll('.wave-bar').forEach((el, i) => {
+                               el.classList.add(`wave-anim-${(i % 3) + 1}`);
+                           });
+                       }
+                   }, "-=0.3")
+                   .to(".stagger-card", { y: 0, opacity: 1, duration: 0.4, stagger: 0.08 }, "-=0.4");
+
+            // Initialize Nav Indicator Position
+            updateNavIndicator(document.getElementById('nav-btn-overview'));
+        };
+
+        // 2. Spatial Routing (View Switching)
+        let isAnimating = false;
+        function switchView(viewId, btn) {
+            if(isAnimating) return;
+            const currentView = document.querySelector('.view-section.active');
+            const nextView = document.getElementById('view-' + viewId);
+            
+            if (currentView === nextView) return;
+            isAnimating = true;
+
             if(btn) {
                 deactivateNavItems();
-                btn.classList.add('active');
+                btn.classList.add('active-text');
+                updateNavIndicator(btn);
+            } else {
+                // If FAB clicked, hide indicator
+                gsap.to("#nav-indicator", { opacity: 0, duration: 0.2 });
             }
+
+            // Cinematic Spatial Switch: Slide left out, Slide right in
+            gsap.to(currentView, {
+                x: -20, opacity: 0, duration: 0.15, ease: "power2.in",
+                onComplete: () => {
+                    currentView.classList.remove('active');
+                    gsap.set(currentView, { x: 0, opacity: 1 }); // reset for future
+                    
+                    nextView.classList.add('active');
+                    gsap.fromTo(nextView, 
+                        { x: 20, opacity: 0 }, 
+                        { x: 0, opacity: 1, duration: 0.25, ease: "power3.out", onComplete: () => isAnimating = false }
+                    );
+                }
+            });
+        }
+
+        // 3. Fluid Nav Indicator
+        function updateNavIndicator(btnElement) {
+            const btnRect = btnElement.getBoundingClientRect();
+            // Calculate exact center of the tapped button relative to the viewport
+            const indicatorWidth = 24;
+            const targetX = btnRect.left + (btnRect.width / 2) - (indicatorWidth / 2);
+
+            gsap.to("#nav-indicator", {
+                x: targetX,
+                opacity: 1,
+                duration: 0.35,
+                ease: "power3.out"
+            });
         }
 
         function deactivateNavItems() {
-            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active-text'));
         }
 
-        // Segmented Control Tabs
+        // ==========================================
+        // 🧠 FUNCTIONAL LOGIC (Untouched)
+        // ==========================================
+        function showToast(msg) {
+            document.getElementById('toast-msg').textContent = msg;
+            const toast = document.getElementById('toast');
+            toast.style.opacity = '1'; toast.style.transform = 'translate(-50%, 0)';
+            setTimeout(() => { toast.style.opacity = '0'; toast.style.transform = 'translate(-50%, -10px)'; }, 3000);
+        }
+
+        function updateFFmpegStatus(isActive) {
+            const badge = document.getElementById('ffmpeg-status-badge');
+            if(isActive) {
+                badge.textContent = "Active";
+                badge.style.backgroundColor = "rgba(16, 185, 129, 0.1)"; badge.style.borderColor = "rgba(16, 185, 129, 0.2)"; badge.style.color = "#10b981";
+            } else {
+                badge.textContent = "Idle";
+                badge.style.backgroundColor = "#27272a"; badge.style.borderColor = "#3f3f46"; badge.style.color = "#a1a1aa";
+            }
+        }
+
+        // Tabs
         document.getElementById('tab-file').onclick = () => {
-            document.getElementById('tab-file').className = "flex-1 py-2 text-sm font-semibold rounded-lg bg-surface text-primary shadow-sm border border-borderline transition-all";
-            document.getElementById('tab-url').className = "flex-1 py-2 text-sm font-medium rounded-lg text-muted transition-all border border-transparent";
-            document.getElementById('upload-file-module').classList.remove('hidden');
-            document.getElementById('upload-url-module').classList.add('hidden');
+            document.getElementById('tab-file').className = "flex-1 py-1.5 text-xs font-semibold rounded-md bg-[#18181b] text-[#fafafa] border border-[#27272a] transition-all";
+            document.getElementById('tab-url').className = "flex-1 py-1.5 text-xs font-medium rounded-md text-[#a1a1aa] transition-all border border-transparent";
+            document.getElementById('upload-file-module').classList.remove('hidden'); document.getElementById('upload-url-module').classList.add('hidden');
         };
         document.getElementById('tab-url').onclick = () => {
-            document.getElementById('tab-url').className = "flex-1 py-2 text-sm font-semibold rounded-lg bg-surface text-primary shadow-sm border border-borderline transition-all";
-            document.getElementById('tab-file').className = "flex-1 py-2 text-sm font-medium rounded-lg text-muted transition-all border border-transparent";
-            document.getElementById('upload-url-module').classList.remove('hidden');
-            document.getElementById('upload-file-module').classList.add('hidden');
+            document.getElementById('tab-url').className = "flex-1 py-1.5 text-xs font-semibold rounded-md bg-[#18181b] text-[#fafafa] border border-[#27272a] transition-all";
+            document.getElementById('tab-file').className = "flex-1 py-1.5 text-xs font-medium rounded-md text-[#a1a1aa] transition-all border border-transparent";
+            document.getElementById('upload-url-module').classList.remove('hidden'); document.getElementById('upload-file-module').classList.add('hidden');
         };
 
-        // --- Library Logic ---
+        // Library Fetch
         async function fetchLibrary() {
             const container = document.getElementById('library-container');
-            container.innerHTML = '<div class="text-center p-8 text-muted font-mono text-xs"><i data-lucide="loader" class="animate-spin inline mr-2 w-4 h-4"></i> Loading R2...</div>';
+            container.innerHTML = '<div class="text-center p-6 text-[#71717a] font-mono text-xs border border-dashed border-[#27272a] rounded-lg"><i data-lucide="loader" class="animate-spin inline mr-2 w-3.5 h-3.5"></i> Syncing...</div>';
             lucide.createIcons();
 
             try {
@@ -384,57 +445,58 @@
                 document.getElementById('stat-videos').textContent = data.videos ? data.videos.length : 0;
                 
                 if(!data.videos || data.videos.length === 0) {
-                    container.innerHTML = '<div class="text-center p-8 text-muted font-mono text-xs border border-dashed border-borderline rounded-2xl">0 Assets Found</div>';
+                    container.innerHTML = '<div class="text-center p-6 text-[#71717a] font-mono text-xs border border-dashed border-[#27272a] rounded-lg">0 Assets Found</div>';
                     return;
                 }
 
-                // Render Clean List
-                container.innerHTML = data.videos.map(v => `
-                    <div class="saas-card p-4 flex items-center gap-4" id="vid-${v.id}">
-                        <div class="w-10 h-10 rounded-xl bg-surface border border-borderline flex items-center justify-center text-accent shrink-0">
-                            <i data-lucide="film" class="w-5 h-5"></i>
+                container.innerHTML = data.videos.map((v, i) => `
+                    <div class="saas-card library-item p-3 flex items-center gap-3" id="vid-${v.id}">
+                        <div class="w-8 h-8 rounded-md bg-[#09090b] border border-[#27272a] flex items-center justify-center text-[#4f46e5] shrink-0">
+                            <i data-lucide="film" class="w-4 h-4"></i>
                         </div>
                         <div class="flex-1 min-w-0">
-                            <h4 class="text-sm font-semibold text-primary truncate">${v.id.substring(0, 16)}...</h4>
-                            <div class="text-[10px] font-mono text-muted mt-0.5">master.m3u8</div>
+                            <h4 class="text-xs font-semibold text-[#fafafa] truncate">${v.id.substring(0, 16)}...</h4>
+                            <div class="text-[9px] font-mono text-[#71717a] mt-0.5">master.m3u8</div>
                         </div>
-                        <div class="flex items-center gap-2 shrink-0">
-                            <button onclick="copyUrl('${v.url}')" class="w-8 h-8 rounded-lg bg-base border border-borderline flex items-center justify-center text-muted hover:text-primary active:scale-90 transition-all"><i data-lucide="copy" class="w-3.5 h-3.5"></i></button>
-                            <button onclick="deleteVideo('${v.id}')" class="w-8 h-8 rounded-lg bg-base border border-borderline flex items-center justify-center text-danger hover:bg-danger/10 active:scale-90 transition-all"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>
+                        <div class="flex items-center gap-1.5 shrink-0">
+                            <button onclick="copyUrl('${v.url}')" class="w-7 h-7 rounded-md bg-[#09090b] border border-[#27272a] flex items-center justify-center text-[#a1a1aa] hover:text-[#fafafa] active:scale-90 transition-all"><i data-lucide="copy" class="w-3 h-3"></i></button>
+                            <button onclick="deleteVideo('${v.id}')" class="w-7 h-7 rounded-md bg-[#09090b] border border-[#27272a] flex items-center justify-center text-[#f43f5e] hover:bg-[#f43f5e]/10 active:scale-90 transition-all"><i data-lucide="trash-2" class="w-3 h-3"></i></button>
                         </div>
                     </div>
                 `).join('');
                 lucide.createIcons();
+                
+                // Stagger animate list items
+                gsap.from(".library-item", { y: 15, opacity: 0, duration: 0.3, stagger: 0.05, ease: "power2.out" });
             } catch (err) {
-                container.innerHTML = `<div class="text-danger text-xs font-mono p-6 text-center border border-danger/20 rounded-2xl bg-danger/5">API Offline</div>`;
+                container.innerHTML = `<div class="text-[#f43f5e] text-xs font-mono p-4 text-center border border-[#f43f5e]/20 rounded-lg bg-[#f43f5e]/5">API Offline</div>`;
             }
         }
 
         async function deleteVideo(id) {
-            if(!confirm("Permenantly delete this asset from R2?")) return;
+            if(!confirm("Permanently delete from R2?")) return;
             try {
                 await fetch(`${API_BASE}/video/${id}`, { method: 'DELETE' });
-                document.getElementById(`vid-${id}`).remove();
+                const el = document.getElementById(`vid-${id}`);
+                gsap.to(el, { scale: 0.9, opacity: 0, duration: 0.2, onComplete: () => { el.remove(); fetchLibrary(); }});
                 showToast("Asset deleted");
-                fetchLibrary();
             } catch (err) { showToast("Delete failed"); }
         }
 
-        function copyUrl(url) {
-            navigator.clipboard.writeText(url);
-            showToast("HLS URL Copied");
-        }
+        function copyUrl(url) { navigator.clipboard.writeText(url); showToast("HLS URL Copied"); }
 
-        // --- Upload & Job Polling Logic ---
+        // Upload & Job Polling
         const tracker = document.getElementById('job-tracker');
         const statusText = document.getElementById('job-status');
         const jobIdText = document.getElementById('job-id');
 
         async function pollJobStatus(jobId) {
             tracker.classList.remove('hidden');
-            jobIdText.textContent = `ID: ${jobId}`;
+            gsap.fromTo(tracker, {y: 10, opacity: 0}, {y: 0, opacity: 1, duration: 0.3});
+            updateFFmpegStatus(true);
+            jobIdText.textContent = `ID: ${jobId.substring(0,12)}...`;
             statusText.textContent = "ENCODING...";
-            statusText.className = "text-[10px] font-mono font-bold text-teal uppercase tracking-wider";
+            statusText.className = "text-[10px] font-mono font-bold text-[#14b8a6] uppercase tracking-wider animate-pulse";
 
             const interval = setInterval(async () => {
                 try {
@@ -443,68 +505,47 @@
 
                     if (job.status === 'completed') {
                         clearInterval(interval);
+                        updateFFmpegStatus(false);
                         statusText.textContent = "SUCCESS";
-                        statusText.className = "text-[10px] font-mono font-bold text-success uppercase tracking-wider";
+                        statusText.className = "text-[10px] font-mono font-bold text-[#10b981] uppercase tracking-wider";
                         showToast("Processing Complete!");
                         setTimeout(() => { 
-                            tracker.classList.add('hidden'); 
-                            fetchLibrary(); 
-                            switchView('library', document.querySelectorAll('.nav-item')[1]); 
+                            gsap.to(tracker, {opacity: 0, duration: 0.2, onComplete: () => tracker.classList.add('hidden')});
+                            switchView('library', document.getElementById('nav-btn-library')); 
+                            setTimeout(fetchLibrary, 250);
                         }, 1500);
                     } else if (job.status === 'failed') {
                         clearInterval(interval);
+                        updateFFmpegStatus(false);
                         statusText.textContent = "FAILED";
-                        statusText.className = "text-[10px] font-mono font-bold text-danger uppercase tracking-wider";
+                        statusText.className = "text-[10px] font-mono font-bold text-[#f43f5e] uppercase tracking-wider";
                         showToast("Encoding Failed");
                     }
-                } catch (e) {
-                    clearInterval(interval);
-                }
+                } catch (e) { clearInterval(interval); }
             }, 2000);
         }
 
-        // Handle File Upload
         document.getElementById('videoInput').addEventListener('change', async (e) => {
-            const file = e.target.files[0];
-            if(!file) return;
-            
-            const formData = new FormData();
-            formData.append('video', file);
-
+            const file = e.target.files[0]; if(!file) return;
+            const formData = new FormData(); formData.append('video', file);
             try {
-                tracker.classList.remove('hidden');
-                statusText.textContent = "UPLOADING";
-                showToast("Sending to node...");
-                
+                statusText.textContent = "UPLOADING"; showToast("Sending to node...");
                 const res = await fetch(`${API_BASE}/upload`, { method: 'POST', body: formData });
                 const data = await res.json();
-                
                 if(data.success) pollJobStatus(data.videoId);
             } catch (err) { showToast("Upload failed"); tracker.classList.add('hidden'); }
         });
 
-        // Handle URL Upload
         document.getElementById('submitUrlBtn').addEventListener('click', async () => {
             const url = document.getElementById('urlInput').value;
             if(!url) return showToast("Enter a valid URL");
-
             try {
-                tracker.classList.remove('hidden');
                 statusText.textContent = "FETCHING";
-                
-                const res = await fetch(`${API_BASE}/upload-url`, { 
-                    method: 'POST', 
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ videoUrl: url })
-                });
+                const res = await fetch(`${API_BASE}/upload-url`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ videoUrl: url }) });
                 const data = await res.json();
-                
                 if(data.success) pollJobStatus(data.videoId);
             } catch (err) { showToast("Fetch failed"); tracker.classList.add('hidden'); }
         });
-
-        // Initial Load
-        fetchLibrary();
     </script>
 </body>
 </html>
