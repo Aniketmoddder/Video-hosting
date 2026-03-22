@@ -12,7 +12,10 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// 🔐 ENV
+// 🆕 NEW FEATURE: Serve the dashboard.html from the 'public' folder
+app.use(express.static("public"));
+
+// 🔐 ENV (Untouched for Railway)
 const {
   R2_ENDPOINT,
   R2_ACCESS_KEY,
@@ -21,7 +24,7 @@ const {
   PUBLIC_URL
 } = process.env;
 
-// ☁️ R2 CONFIG
+// ☁️ R2 CONFIG (Untouched)
 const s3 = new AWS.S3({
   endpoint: R2_ENDPOINT,
   accessKeyId: R2_ACCESS_KEY,
@@ -29,28 +32,72 @@ const s3 = new AWS.S3({
   signatureVersion: "v4"
 });
 
-// 📁 Upload config
+// 📁 Upload config (Untouched)
 const upload = multer({
   dest: "/tmp",
   limits: { fileSize: 1000 * 1024 * 1024 } // 1GB
 });
 
-// 🧠 Job storage
+// 🧠 Job storage (Untouched)
 const jobs = {};
 
-// 🧪 Health
+// 🧪 Health (Untouched)
 app.get("/", (req, res) => {
   res.send("🔥 720p Video Server Running");
 });
 
-// 🔍 Status API
+// 🔍 Status API (Untouched)
 app.get("/status/:id", (req, res) => {
   const job = jobs[req.params.id];
   if (!job) return res.status(404).json({ error: "Not found" });
   res.json(job);
 });
 
-// 🎬 CORE PROCESS (720p ONLY + FAST)
+// 🆕 NEW FEATURE: GET ALL VIDEOS (For the Library Dashboard)
+app.get("/videos", async (req, res) => {
+  try {
+    const params = { Bucket: R2_BUCKET, Delimiter: '/' };
+    const data = await s3.listObjectsV2(params).promise();
+    
+    // Extract folder names (which are the video UUIDs)
+    const videos = data.CommonPrefixes.map(prefix => ({
+      id: prefix.Prefix.replace('/', ''),
+      url: `${PUBLIC_URL}/${prefix.Prefix}master.m3u8`
+    }));
+    
+    res.json({ success: true, videos });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// 🆕 NEW FEATURE: DELETE VIDEO (For the Dashboard Trash Can Icon)
+app.delete("/video/:id", async (req, res) => {
+  const videoId = req.params.id;
+  try {
+    // 1. List all segments (.ts and .m3u8) in the video folder
+    const listParams = { Bucket: R2_BUCKET, Prefix: `${videoId}/` };
+    const listedObjects = await s3.listObjectsV2(listParams).promise();
+
+    if (listedObjects.Contents.length === 0) return res.json({ success: true });
+
+    // 2. Delete all segments from R2
+    const deleteParams = {
+      Bucket: R2_BUCKET,
+      Delete: { Objects: listedObjects.Contents.map(({ Key }) => ({ Key })) }
+    };
+    await s3.deleteObjects(deleteParams).promise();
+    
+    // 3. Remove from memory jobs if it exists
+    if (jobs[videoId]) delete jobs[videoId];
+
+    res.json({ success: true, message: "Video deleted" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// 🎬 CORE PROCESS (720p ONLY + FAST) (Untouched)
 async function processVideo(input, videoId, isM3U8 = false) {
   const outputDir = `/tmp/${videoId}`;
   fs.mkdirSync(outputDir, { recursive: true });
@@ -113,7 +160,7 @@ async function processVideo(input, videoId, isM3U8 = false) {
   return `${PUBLIC_URL}/${videoId}/master.m3u8`;
 }
 
-// 🎬 FILE UPLOAD
+// 🎬 FILE UPLOAD (Untouched)
 app.post("/upload", upload.single("video"), async (req, res) => {
   if (!req.file) {
     return res.status(400).json({ error: "No file uploaded" });
@@ -145,7 +192,7 @@ app.post("/upload", upload.single("video"), async (req, res) => {
   })();
 });
 
-// 🌐 URL UPLOAD
+// 🌐 URL UPLOAD (Untouched)
 app.post("/upload-url", async (req, res) => {
   const { videoUrl } = req.body;
 
@@ -222,6 +269,6 @@ app.post("/upload-url", async (req, res) => {
   })();
 });
 
-// 🚀 START
+// 🚀 START (Untouched)
 const PORT = process.env.PORT || 8080;
 app.listen(PORT, () => console.log("🚀 Running on", PORT));
